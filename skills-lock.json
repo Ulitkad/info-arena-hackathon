@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "max-messenger": {
+      "source": "max-messenger/max-agents-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "f6013607cdc05b0c24f5ef46c34303f51d7d669699e6e207b380565925498fd3"
+    }
+  }
+}
