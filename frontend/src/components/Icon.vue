@@ -1,0 +1,8 @@
+<script setup>
+import { computed } from 'vue'
+import { Activity, ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Award, Bell, BookOpen, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, Clock3, Cloud, Code2, Copy, Crown, Download, ExternalLink, FileText, Flame, GraduationCap, Heart, Home, Image, Layers3, Link, LockKeyhole, LogOut, Menu, MoreHorizontal, Pencil, Plus, Search, Send, Settings2, Shield, Sparkles, Star, Swords, Target, Trash2, Trophy, Upload, UserPlus, Users, X, XCircle } from 'lucide-vue-next'
+const props = defineProps({ name: { type: String, default: 'sparkles' }, size: { type: [Number, String], default: 20 } })
+const icons = { activity: Activity, 'arrow-down': ArrowDown, 'arrow-left': ArrowLeft, 'arrow-right': ArrowRight, 'arrow-up-right': ArrowUpRight, award: Award, bell: Bell, book: BookOpen, calendar: CalendarDays, check: Check, 'check-check': CheckCheck, 'chevron-down': ChevronDown, 'chevron-right': ChevronRight, clock: Clock3, cloud: Cloud, code: Code2, copy: Copy, crown: Crown, download: Download, external: ExternalLink, file: FileText, flame: Flame, graduation: GraduationCap, heart: Heart, home: Home, image: Image, layers: Layers3, link: Link, lock: LockKeyhole, logout: LogOut, menu: Menu, more: MoreHorizontal, pencil: Pencil, plus: Plus, search: Search, send: Send, settings: Settings2, shield: Shield, sparkles: Sparkles, star: Star, swords: Swords, target: Target, trash: Trash2, trophy: Trophy, upload: Upload, 'user-plus': UserPlus, users: Users, x: X, 'x-circle': XCircle }
+const icon = computed(() => icons[props.name] || Sparkles)
+</script>
+<template><component :is="icon" :size="size" :stroke-width="1.5" aria-hidden="true" /></template>

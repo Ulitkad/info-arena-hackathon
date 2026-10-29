@@ -1,0 +1,37 @@
+services:
+  api:
+    build: ./backend
+    env_file: .env
+    environment:
+      UPLOAD_DIR: /uploads
+    volumes:
+      - database:/data
+      - uploads:/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+  bot:
+    build: ./backend
+    command: [python, -m, app.bot]
+    env_file: .env
+    volumes:
+      - database:/data
+    restart: unless-stopped
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "80:80"
+    volumes:
+      - uploads:/uploads:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  database:
+  uploads:
