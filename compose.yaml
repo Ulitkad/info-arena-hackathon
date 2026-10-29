@@ -25,7 +25,7 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
     ports:
-      - "80:80"
+      - "${WEB_PORT:-80}:80"
     volumes:
       - uploads:/uploads:ro
     depends_on:
