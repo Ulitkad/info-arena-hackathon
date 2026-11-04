@@ -73,6 +73,16 @@ function back() {
 function windowIsMax() {
   return Boolean(window.WebApp?.initData);
 }
+async function copyMaxId() {
+  const id = store.user?.max_id;
+  if (id == null) return;
+  try {
+    await navigator.clipboard.writeText(String(id));
+    store.toast("ID скопирован");
+  } catch {
+    store.toast("Не удалось скопировать ID. Попробуйте ещё раз", "error");
+  }
+}
 onMounted(() => {
   if (windowIsMax()) window.WebApp?.BackButton?.onClick(back);
   store.initialize();
@@ -204,6 +214,16 @@ onBeforeUnmount(() => {
         >
           Выйти
         </button>
+        <button
+          v-if="store.user.max_id != null"
+          type="button"
+          class="pending-user-id"
+          title="Нажмите, чтобы скопировать ID"
+          :aria-label="`Скопировать MAX ID ${store.user.max_id}`"
+          @click="copyMaxId"
+        >
+          MAX ID: {{ store.user.max_id }}
+        </button>
       </section>
     </main>
     <main v-else class="app-main">
@@ -296,3 +316,23 @@ onBeforeUnmount(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.pending-user-id {
+  display: block;
+  margin: 18px auto 0;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.pending-user-id:hover {
+  text-decoration: underline;
+}
+</style>

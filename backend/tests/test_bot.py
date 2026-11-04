@@ -68,43 +68,6 @@ async def test_reply_without_username_uses_link(bot_settings):
         })
 
 
-@pytest.mark.parametrize(("recipient", "target"), [
-    ({"chat_type": "dialog", "chat_id": 234503008, "user_id": 99}, {"user_id": "42"}),
-    ({"chat_type": "chat", "chat_id": -123}, {"chat_id": "-123"}),
-])
-async def test_id_command_returns_sender_id(bot_settings, recipient, target):
-    requests = []
-
-    def handler(request):
-        requests.append(request)
-        return httpx.Response(200, json={})
-
-    async with httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://max.test") as client:
-        await bot.handle_update(client, bot_settings, {
-            "update_type": "message_created", "message": {
-                "sender": {"user_id": 42}, "recipient": recipient, "body": {"text": "/id"},
-            },
-        })
-    assert len(requests) == 1
-    assert requests[0].method == "POST"
-    assert requests[0].url.path == "/messages"
-    assert dict(requests[0].url.params) == target
-    assert json.loads(requests[0].content) == {"text": "42"}
-
-
-async def test_id_command_without_sender_is_ignored(bot_settings):
-    def handler(request):
-        pytest.fail("No message should be sent without a sender ID")
-
-    async with httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://max.test") as client:
-        await bot.handle_update(client, bot_settings, {
-            "update_type": "message_created", "message": {
-                "sender": None, "recipient": {"chat_type": "chat", "chat_id": -123},
-                "body": {"text": "/id"},
-            },
-        })
-
-
 async def test_permanent_send_error_does_not_block_marker_or_later_updates(bot_settings, tmp_path, caplog):
     marker_file = tmp_path / "bot-marker"
     marker_file.write_text("121199")
@@ -170,6 +133,9 @@ async def test_connection_timeout_preserves_marker(bot_settings, tmp_path):
     {"update_type": "message_created", "message": {"body": None}},
     {"update_type": "message_created", "message": {"body": {"text": "hello"}}},
     {"update_type": "message_created", "message": {"body": {"text": "/identity"}}},
+    {"update_type": "message_created", "message": {
+        "sender": {"user_id": 42}, "recipient": {"chat_type": "dialog"}, "body": {"text": "/id"},
+    }},
     {"update_type": "message_edited", "message": {"body": {"text": "/id"}}},
     {"update_type": "message_callback", "message": None},
 ])

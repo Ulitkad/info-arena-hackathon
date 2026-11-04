@@ -38,20 +38,10 @@ async def handle_update(client: httpx.AsyncClient, settings: Settings, update: d
     kind = update.get("update_type")
     message = update.get("message") or {}
     text = (message.get("body") or {}).get("text") or ""
-    command = text.strip().split(" ")[0]
-    if kind != "bot_started" and not (kind == "message_created" and command in ("/start", "/help", "/id")):
+    if kind != "bot_started" and not (kind == "message_created" and text.strip().split(" ")[0] in ("/start", "/help")):
         return
     target = reply_target(update)
     if not target:
-        return
-    # Temporary diagnostic command: return the sender's MAX ID, not the chat/bot ID.
-    if kind == "message_created" and command == "/id":
-        user_id = (message.get("sender") or {}).get("user_id")
-        if user_id is None:
-            return
-        reply = await client.post("/messages", params=target, json={"text": str(user_id)})
-        reply.raise_for_status()
-        await asyncio.sleep(0.5)
         return
     button = {"type": "open_app", "text": "Открыть арену", "web_app": settings.bot_username}
     if not settings.bot_username:
