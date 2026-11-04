@@ -83,6 +83,13 @@ async def test_student_invite_rotation_and_moderation(arena):
     assert (await client.get("/api/me", headers=auth)).json()["role"] == "STUDENT"
     async with arena.sessions() as db:
         assert await db.scalar(select(func.count()).select_from(JoinRequest).where(JoinRequest.student_id == applicant.id)) == 1
+        another = User(max_id=800002, display_name="Ещё один ученик")
+        db.add(another)
+        await db.commit()
+        another_auth = {"Authorization": f"Bearer {create_token(another.id)}"}
+    response = await client.post("/api/invites/accept", headers=another_auth, json={"token": new["token"]})
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "PENDING"
 
 
 async def test_event_capacity_blacklist_deadline_and_idempotency(arena):

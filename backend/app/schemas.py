@@ -54,6 +54,10 @@ class AssignUser(UserLookup):
     loads: list[Load] = Field(default_factory=list, max_length=100)
 
 
+class TeacherLoads(Input):
+    loads: list[Load] = Field(min_length=1, max_length=100)
+
+
 class Moderation(Input):
     approve: bool
 

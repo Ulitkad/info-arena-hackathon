@@ -212,7 +212,9 @@ async def members(oid: int, user: User = Depends(current_user), db: AsyncSession
 @router.post("/organizations/{oid}/members")
 async def assign_user(oid: int, data: s.AssignUser, user: User = Depends(current_user), db: AsyncSession = Depends(session_dep)):
     await manageable(db, user, oid)
-    if data.role in ("ADMIN", "MANAGER"):
+    if data.role in ("TEACHER", "MANAGER"):
+        fail("Для приглашения преподавателей и управляющих используйте одноразовую ссылку", 409)
+    if data.role == "ADMIN":
         require(user, "ADMIN")
     target = await find_user(db, data.query)
     if target.id == user.id or target.role == "ADMIN":
@@ -231,13 +233,22 @@ async def assign_user(oid: int, data: s.AssignUser, user: User = Depends(current
         if target.group_id or target.role not in ("PENDING", data.role):
             fail("Нельзя изменить действующую роль пользователя", 409)
         target.role, target.organization_id = data.role, oid
-        if data.role == "TEACHER":
-            await validate_assignments(db, oid, data.loads)
-            await db.execute(delete(TeacherLoad).where(TeacherLoad.teacher_id == target.id))
-            for item in data.loads:
-                db.add(TeacherLoad(teacher_id=target.id, **item.model_dump()))
         await notify(db, target.id, "Вам открыт доступ", f"Ваша роль: {data.role}")
     return public_user(target)
+
+
+@router.put("/organizations/{oid}/teachers/{uid}/loads")
+async def update_teacher_loads(oid: int, uid: int, data: s.TeacherLoads, user: User = Depends(current_user), db: AsyncSession = Depends(session_dep)):
+    await manageable(db, user, oid)
+    teacher = await db.get(User, uid)
+    if not teacher or teacher.role != "TEACHER" or teacher.organization_id != oid:
+        fail("Преподаватель не найден", 404)
+    await validate_assignments(db, oid, data.loads)
+    await db.execute(delete(TeacherLoad).where(TeacherLoad.teacher_id == uid))
+    for item in data.loads:
+        db.add(TeacherLoad(teacher_id=uid, **item.model_dump()))
+    await notify(db, uid, "Учебная нагрузка обновлена")
+    return {"ok": True}
 
 
 @router.delete("/groups/{gid}/members/{uid}")

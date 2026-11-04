@@ -24,3 +24,7 @@ onBeforeUnmount(() => { document.body.style.overflow = ''; document.removeEventL
     <slot />
   </section></div></Teleport>
 </template>
+<style scoped>
+.modal.panel { background: #fff; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.modal-header { background: #fff; backdrop-filter: none; }
+</style>

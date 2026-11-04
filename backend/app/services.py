@@ -156,10 +156,8 @@ async def accept_invite(db, user, token):
     invite = await db.scalar(select(Invite).where(Invite.token_hash == hashlib.sha256(token.encode()).hexdigest()))
     if not invite or invite.revoked:
         fail("Ссылка недействительна или отозвана", 404)
-    if invite.role != "STUDENT" and invite.used_by and invite.used_by != user.id:
+    if invite.role != "STUDENT" and invite.used_by is not None:
         fail("Приглашение уже использовано", 409)
-    if invite.used_by == user.id and invite.role != "STUDENT":
-        return {"status": "APPROVED"}
     if user.role not in ("PENDING", "STUDENT"):
         fail("Для текущей роли нельзя принять это приглашение", 409)
     if user.group_id:

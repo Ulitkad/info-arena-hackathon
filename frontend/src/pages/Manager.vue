@@ -28,6 +28,7 @@ const groupName = ref(""),
   subjectColor = ref("#4f8fe8"),
   inviteGroup = ref(null);
 const assign = ref({ query: "", role: "STUDENT", group_id: "", loads: [] });
+const editingTeacher = ref(null), inviteRole = ref('');
 const reward = ref({
   name: "",
   kind: "BADGE",
@@ -152,20 +153,18 @@ async function invite(role, groupId = null) {
       const [subject_id, group_id] = key.split(":").map(Number);
       return { subject_id, group_id };
     });
-  try {
+  await store.run(async () => {
     const link = await post(
       `/organizations/${organizationId.value}/invites`,
       body,
     );
     message.value = "";
     inviteUrl.value = link.url;
+    inviteRole.value = role;
     await load();
     modal.value = 'invite-result';
     await copyInvite();
-  } catch (e) {
-    message.value = e.message;
-    store.toast(e.message, "error");
-  }
+  });
 }
 async function moderate(item, approve) {
   await perform(
@@ -190,15 +189,9 @@ async function approveAll(group) {
 async function assignUser() {
   const body = {
     query: assign.value.query,
-    role: assign.value.role,
+    role: 'STUDENT',
     group_id: Number(assign.value.group_id) || null,
-    loads:
-      assign.value.role === "TEACHER"
-        ? assign.value.loads.map((key) => {
-            const [subject_id, group_id] = key.split(":").map(Number);
-            return { subject_id, group_id };
-          })
-        : [],
+    loads: [],
   };
   await perform(
     () => post(`/organizations/${organizationId.value}/members`, body),
@@ -206,6 +199,20 @@ async function assignUser() {
   );
   assign.value.query = "";
   assign.value.group_id = "";
+}
+function openTeacher(person = null) {
+  editingTeacher.value = person;
+  assign.value = { role: 'TEACHER', loads: person
+    ? catalog.value.loads.filter(l => l.teacher_id === person.id).map(l => `${l.subject_id}:${l.group_id}`)
+    : [] };
+  modal.value = 'teacher';
+}
+async function saveTeacherLoads() {
+  const loads = assign.value.loads.map(key => {
+    const [subject_id, group_id] = key.split(':').map(Number);
+    return { subject_id, group_id };
+  });
+  await perform(() => put(`/organizations/${organizationId.value}/teachers/${editingTeacher.value.id}/loads`, { loads }), 'Нагрузка обновлена');
 }
 async function deleteMember(member) {
   if (!confirm(`Удалить ${member.display_name} из группы?`)) return;
@@ -554,12 +561,9 @@ async function rename(item, kind) {
         </div>
         <button
           class="btn primary"
-          @click="
-            assign = { query: '', role: 'TEACHER', loads: [] };
-            modal = 'teacher';
-          "
+          @click="openTeacher()"
         >
-          <Icon name="plus" :size="16" />Добавить преподавателя
+          <Icon name="link" :size="16" />Пригласить преподавателя
         </button>
       </div>
       <div class="teacher-load-grid">
@@ -577,16 +581,7 @@ async function rename(item, kind) {
             <button
               class="icon-btn"
               :aria-label="`Изменить нагрузку ${person.display_name}`"
-              @click="
-                assign.query = person.username
-                  ? '@' + person.username
-                  : String(person.max_id);
-                assign.role = 'TEACHER';
-                assign.loads = catalog.loads
-                  .filter((l) => l.teacher_id === person.id)
-                  .map((l) => `${l.subject_id}:${l.group_id}`);
-                modal = 'teacher';
-              "
+              @click="openTeacher(person)"
             >
               <Icon name="pencil" :size="16" />
             </button>
@@ -626,13 +621,10 @@ async function rename(item, kind) {
         >
           <span class="empty-icon"><Icon name="graduation" :size="27" /></span>
           <h3>Учителей пока нет</h3>
-          <p>Назначь преподавателя по username и собери учебную нагрузку.</p>
+          <p>Выбери учебную нагрузку и пригласи преподавателя по одноразовой ссылке.</p>
           <button
             class="btn primary small"
-            @click="
-              assign = { query: '', role: 'TEACHER', loads: [] };
-              modal = 'teacher';
-            "
+            @click="openTeacher()"
           >
             <Icon name="plus" :size="15" />Добавить
           </button>
@@ -650,9 +642,7 @@ async function rename(item, kind) {
           <span class="catalog-symbol"><Icon name="link" :size="16" /></span
           ><span
             ><strong>{{
-              invite.group_id
-                ? catalog.groups.find((g) => g.id === invite.group_id)?.name
-                : "Все учебные группы"
+              invite.loads.map(l => `${catalog.subjects.find(s => s.id === l.subject_id)?.name || 'Предмет удалён'} · ${catalog.groups.find(g => g.id === l.group_id)?.name || 'Группа удалена'}`).join(', ')
             }}</strong
             ><small>{{
               invite.revoked
@@ -855,7 +845,7 @@ async function rename(item, kind) {
           </select></label
         ><button
           class="btn primary modal-submit"
-          :disabled="!assign.group_id"
+          :disabled="!assign.group_id || store.saving"
           @click="invite('STUDENT', Number(assign.group_id))"
         >
           <Icon name="link" :size="16" />Создать и скопировать ссылку
@@ -866,7 +856,7 @@ async function rename(item, kind) {
       v-else-if="modal === 'invite-result'"
       title="Приглашение готово"
       @close="modal = ''"
-    ><div class="modal-form"><p>Отправьте ссылку будущему участнику.</p><label class="field-label">Ссылка приглашения<input :value="inviteUrl" readonly @focus="$event.target.select()" /></label><button class="btn primary" @click="copyInvite">Скопировать ссылку</button></div></Modal>
+    ><div class="modal-form"><p>{{ inviteRole === 'STUDENT' ? 'Отправьте ссылку ученикам. Она многоразовая, вступление — после модерации.' : 'Отправьте ссылку преподавателю. Она одноразовая: первый активировавший её пользователь получит выбранную нагрузку, после чего ссылка перестанет работать.' }}</p><label class="field-label">Ссылка приглашения<input :value="inviteUrl" readonly @focus="$event.target.select()" /></label><button class="btn primary" @click="copyInvite">Скопировать ссылку</button></div></Modal>
     <Modal
       v-else-if="modal === 'assign-student'"
       title="Добавить участника"
@@ -882,22 +872,7 @@ async function rename(item, kind) {
             required
             placeholder="@username или ID MAX"
         /></label>
-        <div class="segmented-field">
-          <legend>Роль</legend>
-          <label
-            v-for="role in [
-              { value: 'STUDENT', label: 'Ученик' },
-              { value: 'TEACHER', label: 'Преподаватель' },
-            ]"
-            :key="role.value"
-            ><input
-              v-model="assign.role"
-              type="radio"
-              :value="role.value"
-            /><span>{{ role.label }}</span></label
-          >
-        </div>
-        <label v-if="assign.role === 'STUDENT'" class="field-label"
+        <label class="field-label"
           >Группа<select v-model="assign.group_id" required>
             <option disabled value="">Выбери группу</option>
             <option
@@ -909,35 +884,6 @@ async function rename(item, kind) {
             </option>
           </select></label
         >
-        <fieldset v-else class="choice-field">
-          <legend>Предметы и группы нагрузки</legend>
-          <div
-            v-for="subject in catalog.subjects"
-            :key="subject.id"
-            class="matrix-subject"
-          >
-            <span
-              class="matrix-dot"
-              :style="{ background: subject.color }"
-            ></span
-            ><strong>{{ subject.name }}</strong>
-            <div class="matrix-groups">
-              <label
-                v-for="group in catalog.groups.filter((g) =>
-                  catalog.links.some(
-                    (l) => l.group_id === g.id && l.subject_id === subject.id,
-                  ),
-                )"
-                :key="group.id"
-                ><input
-                  v-model="assign.loads"
-                  type="checkbox"
-                  :value="`${subject.id}:${group.id}`"
-                /><span>{{ group.name }}</span></label
-              >
-            </div>
-          </div>
-        </fieldset>
         <button class="btn primary modal-submit" :disabled="store.saving">
           <Icon name="user-plus" :size="16" />Открыть доступ
         </button>
@@ -945,16 +891,13 @@ async function rename(item, kind) {
     >
     <Modal
       v-else-if="modal === 'teacher'"
-      title="Преподаватель и нагрузка"
+      :title="editingTeacher ? 'Учебная нагрузка' : 'Приглашение преподавателя'"
       wide
       @close="modal = ''"
       ><div class="modal-form">
-        <label class="field-label"
-          >Username или ID MAX<input
-            v-model.trim="assign.query"
-            placeholder="@username"
-            required
-        /></label>
+        <p v-if="editingTeacher">{{ editingTeacher.display_name }} — выберите предметы и группы.</p>
+        <p v-else>Выберите предметы и группы для будущего преподавателя. Приглашение одноразовое и перестанет работать после активации.</p>
+        <p v-if="!catalog.links.length">Сначала создайте предметы и группы и привяжите предметы к группам.</p>
         <div
           v-for="subject in catalog.subjects"
           :key="subject.id"
@@ -980,14 +923,13 @@ async function rename(item, kind) {
         </div>
         <button
           class="btn primary modal-submit"
-          :disabled="!assign.query || !assign.loads.length || store.saving"
-          @click="assignUser()"
+          :disabled="!assign.loads.length || store.saving"
+          @click="editingTeacher ? saveTeacherLoads() : invite('TEACHER')"
         >
           <Icon name="link" :size="16" />{{
-            "Сохранить преподавателя"
+            editingTeacher ? 'Сохранить нагрузку' : 'Создать и скопировать ссылку'
           }}
         </button>
-        <button class="btn secondary" :disabled="!assign.loads.length || store.saving" @click="invite('TEACHER')"><Icon name="link" :size="16" />Создать приглашение с выбранной нагрузкой</button>
       </div></Modal
     >
     <Modal

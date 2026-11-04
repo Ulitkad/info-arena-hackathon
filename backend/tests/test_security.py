@@ -70,6 +70,28 @@ async def test_signed_start_param_creates_join_request(arena, monkeypatch):
     assert me.json()["join_request"]["group_id"] == 1
 
 
+@pytest.mark.parametrize("role", ["TEACHER", "MANAGER"])
+async def test_signed_staff_deeplink_is_single_use(arena, monkeypatch, role):
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "bot_username", "arena_test_bot")
+    body = {"role": role, "loads": [{"subject_id": 1, "group_id": 1}] if role == "TEACHER" else []}
+    invitation = await arena.client.post("/api/organizations/1/invites", headers=arena.auth(900005), json=body)
+    assert invitation.status_code == 200, invitation.text
+    link = invitation.json()
+    assert link["url"] == f"https://max.ru/arena_test_bot?startapp={link['token']}"
+    payload = {"init_data": signed_data(start_param=link["token"])}
+    response = await arena.client.post("/api/auth/max", json=payload)
+    assert response.status_code == 200, response.text
+    assert response.json()["user"]["role"] == role
+    assert response.json()["user"]["organization_id"] == 1
+    assert (await arena.client.post("/api/auth/max", json=payload)).status_code == 409
+    other = {"init_data": signed_data(user={"id": 700002, "name": "Другой"}, start_param=link["token"])}
+    assert (await arena.client.post("/api/auth/max", json=other)).status_code == 409
+    # A spent invitation must not prevent a regular login without its token.
+    assert (await arena.client.post("/api/auth/max", json={"init_data": signed_data()})).status_code == 200
+
+
 async def test_dev_auth_is_unavailable_when_disabled(arena, monkeypatch):
     from app.config import get_settings
 
