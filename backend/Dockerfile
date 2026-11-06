@@ -14,7 +14,7 @@ RUN useradd --uid 10001 --create-home --no-log-init arena \
     && mkdir --parents /data /uploads \
     && chown arena:arena /data /uploads
 
-COPY --link --chown=arena:arena . ./
+COPY --link --chown=10001:10001 . ./
 USER arena
 EXPOSE 8000
 CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1"]
