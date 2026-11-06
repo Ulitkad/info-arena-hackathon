@@ -125,3 +125,143 @@
   }
   .student-list-head .member-actions>.btn{flex:0 0 auto}
 }
+
+/* The fixed navigation and admin invitation rows need their own layout.  The
+   old rules relied on browser defaults, which made the rows collapse and let
+   the fixed bar stop before the stable scrollbar gutter on narrow screens. */
+.bottom-nav{
+  position:fixed;
+  z-index:30;
+  right:auto;
+  bottom:0;
+  left:0;
+  width:100vw;
+  max-width:100vw;
+  min-height:4.75rem;
+  padding:var(--space-2) max(var(--space-2), env(safe-area-inset-left))
+    calc(var(--space-2) + env(safe-area-inset-bottom))
+    max(var(--space-2), env(safe-area-inset-right));
+  display:flex;
+  align-items:stretch;
+  justify-content:center;
+  gap:var(--space-2);
+  border-top:1px solid var(--line);
+  background:color-mix(in srgb, var(--surface) 94%, transparent);
+  box-shadow:0 -8px 24px rgba(22,38,62,.08);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+.bottom-nav>a{
+  min-width:0;
+  min-height:3.25rem;
+  flex:1 1 0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:var(--space-1);
+  position:relative;
+  padding:var(--space-2) var(--space-1);
+  border:1px solid transparent;
+  border-radius:var(--space-3);
+  color:var(--muted);
+  font-size:var(--font-caption);
+  font-weight:650;
+  line-height:1.2;
+  text-align:center;
+  transition:background .16s,color .16s,border-color .16s;
+}
+.bottom-nav>a svg{flex:0 0 auto}
+.bottom-nav>a.active{
+  color:var(--blue);
+  background:#edf4ff;
+  border-color:#d8e7fb;
+}
+.bottom-nav>a:not(.active):hover{background:color-mix(in srgb,var(--surface) 72%,var(--blue));color:var(--blue)}
+.nav-dot{position:absolute;top:.55rem;right:calc(50% - 1.05rem);width:.375rem;height:.375rem;border-radius:50%;background:var(--coral);box-shadow:0 0 0 3px var(--surface)}
+
+.organization-card{overflow:hidden}
+.organization-top{gap:var(--space-3)}
+.organization-top .chip{flex:0 0 auto}
+.organization-card>h3{overflow-wrap:anywhere}
+.org-stats>span{min-width:0;flex:1 1 0}
+.org-stats>span b{flex:0 0 auto}
+.org-managers{display:flex;flex-direction:column;align-items:stretch;gap:var(--space-3)}
+.org-managers>.eyebrow{margin-bottom:0}
+.org-manager{margin:0;min-width:0;display:flex;align-items:center;gap:var(--space-3)}
+.org-manager>span{min-width:0;overflow-wrap:anywhere}
+.org-manager strong,.org-manager small{overflow-wrap:anywhere}
+.org-managers>.btn{align-self:flex-start;max-width:100%}
+.invite-row{
+  min-width:0;
+  min-height:var(--control-height-small);
+  margin-top:0;
+  padding:var(--space-3) 0 0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:var(--space-3);
+  border-top:1px solid var(--line);
+}
+.invite-row>span{min-width:0;display:flex;flex:1 1 auto;flex-direction:column;gap:var(--space-1);overflow-wrap:anywhere}
+.invite-row strong,.invite-row small{overflow-wrap:anywhere}
+.invite-row strong{font-size:var(--font-caption);line-height:var(--leading-body)}
+.invite-row small{color:var(--muted);text-transform:uppercase}
+.invite-row>.icon-btn{flex:0 0 auto}
+.org-link{margin-top:var(--space-1)}
+
+@media (prefers-color-scheme: dark){
+  :root,html,body{background:#151e28}
+  .bottom-nav{
+    border-top-color:#34465b;
+    background:rgba(15,22,30,.97);
+    box-shadow:0 -10px 28px rgba(0,0,0,.28);
+  }
+  .bottom-nav>a{color:#91a1b6}
+  .bottom-nav>a.active{
+    color:#79adff;
+    background:#203654;
+    border-color:#2e527d;
+  }
+  .bottom-nav>a:not(.active):hover{background:#1c2b3b;color:#a9c8f5}
+  .nav-dot{box-shadow:0 0 0 3px #0f161e}
+  .organization-mark{background:#243b58;color:#9dc5ff}
+  .organization-card>p,.org-stats>span,.org-manager small,.org-no-manager,.invite-row small{color:#9aaac0}
+  .org-stats,.org-link,.invite-row{border-color:#34465b}
+  .org-stats>span b{color:#c4d2e3}
+  .org-link{color:#82b5ff}
+  .org-link:hover{color:#b0d1ff}
+  .org-no-manager{color:#d1a27d}
+  .invite-row strong{color:#e5edf8}
+  .invite-row .danger-icon{color:#ef8d96;border-color:#5e3945;background:#30232c}
+
+  /* Request groups used a hard-coded light header, so only this part of the
+     manager page stayed white in the browser dark theme. */
+  .request-group-head{
+    background:#1c2733;
+    color:var(--ink);
+    border-bottom:1px solid #34465b;
+  }
+  .request-group-head>span:nth-child(2)>small{color:#9aaac0}
+  .group-icon{
+    background:#263d5b;
+    color:#8fb8f5;
+  }
+  .request-row{border-top-color:#34465b}
+  .approve-btn{
+    background:#203d36;
+    color:#80d2b0;
+    border-color:#2e5b4e;
+  }
+  .approve-btn:hover{background:#285044;border-color:#3a7664;color:#a0e4c8}
+  .request-row .danger-icon{color:#ef8d96;border-color:#5e3945;background:#30232c}
+}
+
+@media (max-width:35rem){
+  .bottom-nav{min-height:4.5rem}
+  .bottom-nav>a{min-height:3rem;font-size:.6875rem}
+  .org-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+  .org-managers>.btn{width:100%;align-self:stretch}
+  .invite-row{align-items:flex-start}
+  .invite-row>.icon-btn{margin-top:0}
+}
