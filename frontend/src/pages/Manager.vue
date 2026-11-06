@@ -6,6 +6,7 @@ import { useArena } from "../stores/arena";
 import Modal from "../components/Modal.vue";
 import Icon from "../components/Icon.vue";
 import Avatar from "../components/Avatar.vue";
+import ColorPicker from "../components/ColorPicker.vue";
 
 const store = useArena(),
   route = useRoute(),
@@ -29,6 +30,7 @@ const groupName = ref(""),
   inviteGroup = ref(null);
 const assign = ref({ query: "", role: "STUDENT", group_id: "", loads: [] });
 const editingTeacher = ref(null), inviteRole = ref('');
+const renameTarget = ref(null), renameName = ref('');
 const reward = ref({
   name: "",
   kind: "BADGE",
@@ -186,23 +188,9 @@ async function approveAll(group) {
     "Заявки группы рассмотрены",
   );
 }
-async function assignUser() {
-  const body = {
-    query: assign.value.query,
-    role: 'STUDENT',
-    group_id: Number(assign.value.group_id) || null,
-    loads: [],
-  };
-  await perform(
-    () => post(`/organizations/${organizationId.value}/members`, body),
-    "Участнику предоставлен доступ",
-  );
-  assign.value.query = "";
-  assign.value.group_id = "";
-}
 function openTeacher(person = null) {
   editingTeacher.value = person;
-  assign.value = { role: 'TEACHER', loads: person
+  assign.value = { query: '', role: 'TEACHER', group_id: '', loads: person
     ? catalog.value.loads.filter(l => l.teacher_id === person.id).map(l => `${l.subject_id}:${l.group_id}`)
     : [] };
   modal.value = 'teacher';
@@ -260,20 +248,25 @@ async function deleteReward(item) {
   if (item.special) return;
   await perform(() => remove(`/rewards/${item.id}`), "Награда удалена");
 }
-async function rename(item, kind) {
-  const name = prompt(
-    `Новое название для ${kind === "group" ? "группы" : "предмета"}:`,
-    item.name,
-  );
-  if (!name?.trim()) return;
+function openRename(item, kind) {
+  renameTarget.value = { item, kind };
+  renameName.value = item.name;
+  modal.value = 'rename';
+}
+async function saveRename() {
+  const target = renameTarget.value;
+  const name = renameName.value.trim();
+  if (!target || !name) return;
   await perform(
     () =>
       put(
-        `/${kind === "group" ? "groups" : "subjects"}/${item.id}`,
-        kind === "group" ? { name } : { name, color: item.color },
+        `/${target.kind === "group" ? "groups" : "subjects"}/${target.item.id}`,
+        target.kind === "group" ? { name } : { name, color: target.item.color },
       ),
     "Изменения сохранены",
   );
+  renameTarget.value = null;
+  renameName.value = '';
 }
 </script>
 <template>
@@ -402,7 +395,7 @@ async function rename(item, kind) {
           </button>
         </article>
       </section>
-      <button class="btn primary" @click="modal = 'invite-student'">
+      <button class="btn primary invite-student-action" @click="modal = 'invite-student'">
         <Icon name="link" :size="16" />Приглашение для ученика
       </button>
     </section>
@@ -456,7 +449,7 @@ async function rename(item, kind) {
             ><Icon name="link" :size="16" /></button><button
               class="icon-btn"
               :aria-label="`Переименовать ${group.name}`"
-              @click="rename(group, 'group')"
+              @click="openRename(group, 'group')"
             >
               <Icon name="pencil" :size="16" /></button
             ><button
@@ -498,7 +491,7 @@ async function rename(item, kind) {
             ><button
               class="icon-btn"
               :aria-label="`Переименовать ${subject.name}`"
-              @click="rename(subject, 'subject')"
+              @click="openRename(subject, 'subject')"
             >
               <Icon name="pencil" :size="16" />
             </button>
@@ -521,7 +514,7 @@ async function rename(item, kind) {
             ><Icon name="search" :size="16" /><input
               v-model="search"
               placeholder="Поиск по имени или группе" /></label
-          ><button class="btn primary small" @click="modal = 'assign-student'">
+          ><button class="btn primary small" @click="modal = 'invite-student'">
             <Icon name="user-plus" :size="15" />Добавить
           </button>
         </div>
@@ -790,9 +783,18 @@ async function rename(item, kind) {
             required
             maxlength="100"
             placeholder="Например, Программирование" /></label
-        ><label class="field-label"
-          >Цвет предмета<input v-model="subjectColor" type="color" /></label
+         ><label class="field-label"
+           >Цвет предмета<ColorPicker v-model="subjectColor" /></label
         ><button class="btn primary modal-submit">Добавить предмет</button>
+      </form></Modal
+    >
+    <Modal
+      v-else-if="modal === 'rename'"
+      :title="`Переименовать ${renameTarget?.kind === 'group' ? 'группу' : 'предмет'}`"
+      @close="modal = ''"
+      ><form class="modal-form" @submit.prevent="saveRename">
+        <label class="field-label">Новое название<input v-model.trim="renameName" maxlength="100" required /></label>
+        <div class="modal-submit-row"><button type="button" class="btn secondary" @click="modal = ''">Отмена</button><button class="btn primary" :disabled="store.saving">Сохранить <Icon name="check" :size="15" /></button></div>
       </form></Modal
     >
     <Modal
@@ -857,38 +859,6 @@ async function rename(item, kind) {
       title="Приглашение готово"
       @close="modal = ''"
     ><div class="modal-form"><p>{{ inviteRole === 'STUDENT' ? 'Отправьте ссылку ученикам. Она многоразовая, вступление — после модерации.' : 'Отправьте ссылку преподавателю. Она одноразовая: первый активировавший её пользователь получит выбранную нагрузку, после чего ссылка перестанет работать.' }}</p><label class="field-label">Ссылка приглашения<input :value="inviteUrl" readonly @focus="$event.target.select()" /></label><button class="btn primary" @click="copyInvite">Скопировать ссылку</button></div></Modal>
-    <Modal
-      v-else-if="modal === 'assign-student'"
-      title="Добавить участника"
-      wide
-      @close="modal = ''"
-      ><form class="modal-form" @submit.prevent="assignUser">
-        <label class="field-label"
-          >Учётная запись
-          <span class="field-hint"
-            >По username, ID MAX или подтвержденному номеру телефона</span
-          ><input
-            v-model.trim="assign.query"
-            required
-            placeholder="@username или ID MAX"
-        /></label>
-        <label class="field-label"
-          >Группа<select v-model="assign.group_id" required>
-            <option disabled value="">Выбери группу</option>
-            <option
-              v-for="group in catalog.groups"
-              :key="group.id"
-              :value="String(group.id)"
-            >
-              {{ group.name }}
-            </option>
-          </select></label
-        >
-        <button class="btn primary modal-submit" :disabled="store.saving">
-          <Icon name="user-plus" :size="16" />Открыть доступ
-        </button>
-      </form></Modal
-    >
     <Modal
       v-else-if="modal === 'teacher'"
       :title="editingTeacher ? 'Учебная нагрузка' : 'Приглашение преподавателя'"

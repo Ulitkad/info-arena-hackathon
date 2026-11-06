@@ -40,6 +40,7 @@ const nav = computed(() =>
 const pending = computed(() => store.user?.role === "PENDING");
 const title = computed(() => route.meta.title || "Инфо Арена");
 const persona = ref("student");
+const lastPage = ref("/");
 watch(
   () => [store.loading, store.user?.role, route.fullPath],
   () => {
@@ -58,6 +59,7 @@ function openToast(toast) {
 watch(
   () => [route.fullPath, store.user?.role],
   () => {
+    if (route.path !== "/notifications") lastPage.value = route.fullPath;
     window.scrollTo({ top: 0, behavior: "smooth" });
     const bridge = window.WebApp;
     if (bridge?.initData && bridge?.BackButton) {
@@ -69,6 +71,10 @@ watch(
 );
 function back() {
   router.back();
+}
+function toggleNotifications() {
+  if (route.path === "/notifications") router.push(lastPage.value || homeFor(store.user?.role));
+  else router.push("/notifications");
 }
 function windowIsMax() {
   return Boolean(window.WebApp?.initData);
@@ -101,16 +107,9 @@ onBeforeUnmount(() => {
         ><span>инфо<span class="brand-light">арена</span></span></router-link
       >
       <div class="topbar-right">
-        <router-link
-          to="/notifications"
-          class="icon-btn notification-button"
-          aria-label="Уведомления"
-          ><Icon name="bell" /><span
-            v-if="store.unread"
-            class="notification-dot"
-            aria-label="Непрочитанные уведомления"
-          ></span
-        ></router-link>
+        <button class="icon-btn notification-button" aria-label="Уведомления" :aria-pressed="route.path === '/notifications'" @click="toggleNotifications">
+          <Icon name="bell" /><span v-if="store.unread" class="notification-dot" aria-label="Непрочитанные уведомления"></span>
+        </button>
         <button v-if="store.config.dev_auth && !windowIsMax()" class="icon-btn" aria-label="Сменить демопользователя" title="Сменить демопользователя" @click="store.logout()"><Icon name="logout" :size="18" /></button>
         <router-link :to="store.user.role === 'STUDENT' ? '/settings' : homeFor(store.user.role)" class="user-mini"
           ><Avatar :user="store.user" :size="34" /><span>{{
