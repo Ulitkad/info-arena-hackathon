@@ -90,3 +90,38 @@
   .organization-card{padding:var(--space-4)}
   .org-stats{display:grid;grid-template-columns:1fr 1fr}
 }
+
+/* Final theme and mobile management overrides. This file is loaded after the
+   shared stylesheet, so these rules have the last word on these surfaces. */
+@media (prefers-color-scheme: dark){
+  .notification-row,
+  .notification-row.unread{
+    background:var(--surface);
+    border-color:#34465b;
+    color:var(--ink);
+  }
+  .notification-row:hover{background:#223144;border-color:#49617e}
+  .notification-kind{background:#263d5b;color:#8fb8f5}
+  .notification-copy small{color:#b0bfd1}
+  .notification-copy time{color:#8292a8}
+  .search-field{background:var(--surface);border-color:#34465b;color:#9aaac0}
+  .search-field>input{color:var(--ink)}
+}
+
+@media (max-width:35rem){
+  .student-list-head .member-actions{
+    width:100%;
+    flex-direction:row;
+    align-items:center;
+    justify-content:center;
+    gap:var(--space-3);
+  }
+  .student-list-head .search-field{
+    width:min(15rem,calc(100% - 6rem));
+    max-width:calc(100% - 6rem);
+    height:var(--control-height);
+    min-height:var(--control-height);
+    flex:0 1 15rem;
+  }
+  .student-list-head .member-actions>.btn{flex:0 0 auto}
+}

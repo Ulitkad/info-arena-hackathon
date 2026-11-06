@@ -202,17 +202,20 @@ onBeforeUnmount(() => {
           <span class="live-dot"></span> Заявка отправлена ·
           {{ store.user.group?.name || "группа" }}
         </div>
-        <button class="btn secondary" @click="store.initialize()">
-          <Icon name="activity" :size="16" /> Обновить статус</button
-        ><button
-          class="text-btn pending-exit"
-          @click="
-            store.logout();
-            store.initialize();
-          "
-        >
-          Выйти
-        </button>
+        <div class="pending-actions">
+          <button class="btn secondary" @click="store.initialize()">
+            <Icon name="activity" :size="16" /> Обновить статус
+          </button>
+          <button
+            class="text-btn pending-exit"
+            @click="
+              store.logout();
+              store.initialize();
+            "
+          >
+            Выйти
+          </button>
+        </div>
         <button
           v-if="store.user.max_id != null"
           type="button"
@@ -330,6 +333,25 @@ onBeforeUnmount(() => {
   line-height: 1.5;
   overflow-wrap: anywhere;
   cursor: pointer;
+}
+.pending-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+.pending-actions .pending-exit {
+  margin: 0;
+}
+@media (max-width: 35rem) {
+  .pending-actions {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .pending-actions > * {
+    width: 100%;
+  }
 }
 .pending-user-id:hover {
   text-decoration: underline;
