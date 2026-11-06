@@ -41,6 +41,13 @@ async function inviteManager(org) {
 async function revokeInvite(id) {
   await store.run(async () => { await remove(`/invites/${id}`); await load() }, 'Приглашение отозвано')
 }
+async function removeStaff(org, person) {
+  if (!confirm(`Удалить ${person.display_name} из учреждения?`)) return
+  await store.run(async () => {
+    await remove(`/organizations/${org.id}/members/${person.id}`)
+    await load()
+  }, `${person.role === 'MANAGER' ? 'Управляющий' : 'Преподаватель'} удалён`)
+}
 async function copyInvite() {
   try { await navigator.clipboard.writeText(inviteUrl.value); store.toast('Приглашение скопировано') }
   catch { store.toast('Скопируйте ссылку из поля') }
@@ -65,9 +72,15 @@ async function copyInvite() {
         <div class="org-managers">
           <span class="eyebrow">УПРАВЛЕНИЕ</span>
           <div v-for="person in item.users.filter(u => u.role === 'MANAGER')" :key="person.id" class="org-manager">
-            <Avatar :user="person" :size="34" /><span><strong>{{ person.display_name }}</strong><small>Управляющий</small></span>
+            <Avatar :user="person" :size="34" /><span><strong>{{ person.display_name }}</strong><small>Управляющий</small></span><button class="icon-btn danger-icon" :aria-label="`Удалить управляющего ${person.display_name}`" :disabled="store.saving" @click="removeStaff(item.org, person)"><Icon name="trash" :size="16" /></button>
           </div>
           <div v-if="!item.users.some(u => u.role === 'MANAGER')" class="org-no-manager">Управляющий не назначен</div>
+          <div v-if="item.users.some(u => u.role === 'TEACHER')" class="org-staff-list">
+            <span class="eyebrow">ПРЕПОДАВАТЕЛИ</span>
+            <div v-for="person in item.users.filter(u => u.role === 'TEACHER')" :key="person.id" class="org-manager">
+              <Avatar :user="person" :size="34" /><span><strong>{{ person.display_name }}</strong><small>Преподаватель</small></span><button class="icon-btn danger-icon" :aria-label="`Удалить преподавателя ${person.display_name}`" :disabled="store.saving" @click="removeStaff(item.org, person)"><Icon name="trash" :size="16" /></button>
+            </div>
+          </div>
           <button class="btn secondary small" :disabled="store.saving" @click="inviteManager(item.org)"><Icon name="link" :size="15" />Пригласить управляющего</button>
           <div v-for="invite in item.invites.filter(i => i.role === 'MANAGER')" :key="invite.id" class="invite-row">
             <span><strong>Приглашение #{{ invite.id }}</strong><small>{{ invite.revoked ? 'ОТОЗВАНО' : invite.used_by ? 'ИСПОЛЬЗОВАНО' : 'АКТИВНО · ОДНОРАЗОВОЕ' }}</small></span>

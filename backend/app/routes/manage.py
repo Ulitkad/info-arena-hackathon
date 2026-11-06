@@ -251,6 +251,24 @@ async def update_teacher_loads(oid: int, uid: int, data: s.TeacherLoads, user: U
     return {"ok": True}
 
 
+@router.delete("/organizations/{oid}/members/{uid}")
+async def remove_staff(oid: int, uid: int, user: User = Depends(current_user), db: AsyncSession = Depends(session_dep)):
+    await manageable(db, user, oid)
+    target = await db.get(User, uid)
+    if not target or target.organization_id != oid or target.role not in ("TEACHER", "MANAGER"):
+        fail("Сотрудник не найден", 404)
+    if target.role == "MANAGER":
+        require(user, "ADMIN")
+    if target.id == user.id:
+        fail("Нельзя удалить собственную учетную запись", 409)
+
+    if target.role == "TEACHER":
+        await db.execute(delete(TeacherLoad).where(TeacherLoad.teacher_id == target.id))
+    target.role, target.organization_id, target.group_id = "PENDING", None, None
+    await notify(db, target.id, "Доступ к учреждению закрыт", "Для повторного подключения используйте новое приглашение")
+    return {"ok": True}
+
+
 @router.delete("/groups/{gid}/members/{uid}")
 async def remove_student(gid: int, uid: int, user: User = Depends(current_user), db: AsyncSession = Depends(session_dep)):
     group, student = await db.get(Group, gid), await db.get(User, uid)

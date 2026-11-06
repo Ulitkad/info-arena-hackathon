@@ -142,6 +142,27 @@ async def test_removing_student_revokes_learning_access_and_cancels_duel(arena):
         assert all(part.status == "JOINED" for part, status in participants if status == "COMPLETED")
 
 
+async def test_staff_removal_is_scoped_by_role_and_clears_teacher_load(arena):
+    client = arena.client
+    teacher = arena.users[900003]
+    manager = arena.auth(900004)
+    admin = arena.auth(900005)
+
+    assert (await client.delete(f"/api/organizations/1/members/{teacher.id}", headers=manager)).status_code == 200
+    assert (await client.delete(f"/api/organizations/1/members/{arena.users[900004].id}", headers=manager)).status_code == 403
+    async with arena.sessions() as db:
+        removed_teacher = await db.get(User, teacher.id)
+        assert removed_teacher.role == "PENDING"
+        assert removed_teacher.organization_id is None
+        assert not await db.scalar(select(TeacherLoad.teacher_id).where(TeacherLoad.teacher_id == teacher.id))
+
+    assert (await client.delete(f"/api/organizations/1/members/{arena.users[900004].id}", headers=admin)).status_code == 200
+    async with arena.sessions() as db:
+        removed_manager = await db.get(User, arena.users[900004].id)
+        assert removed_manager.role == "PENDING"
+        assert removed_manager.organization_id is None
+
+
 async def test_phone_signature_is_bound_to_current_max_user(arena):
     stamp, phone = int(time.time()), "79991234567"
     check = f"authDate={stamp}\nphone={phone}\nuserId=900001"

@@ -209,6 +209,13 @@ async function deleteMember(member) {
     "Доступ к группе закрыт",
   );
 }
+async function deleteTeacher(teacher) {
+  if (!confirm(`Удалить ${teacher.display_name} из учреждения?`)) return;
+  await perform(
+    () => remove(`/organizations/${organizationId.value}/members/${teacher.id}`),
+    "Преподаватель удалён",
+  );
+}
 async function saveReward() {
   const body = {
     ...reward.value,
@@ -577,6 +584,12 @@ async function saveRename() {
               @click="openTeacher(person)"
             >
               <Icon name="pencil" :size="16" />
+            </button><button
+              class="icon-btn danger-icon"
+              :aria-label="`Удалить преподавателя ${person.display_name}`"
+              @click="deleteTeacher(person)"
+            >
+              <Icon name="trash" :size="16" />
             </button>
           </div>
           <div
