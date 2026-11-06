@@ -1,28 +1,57 @@
-# Инфо Арена
+# Info Arena
 
-Бот MAX и Mini App для геймификации обучения: задания, мероприятия, Battlepass, награды, друзья и дуэли. Интерфейс на Vue 3, Vite, Pinia и Vue Router; API на FastAPI, SQLAlchemy 2 и SQLite, миграции Alembic.
+[Русская версия](README.ru.md)
 
-## Возможности
+Info Arena is a MAX bot and Mini App for gamified learning. It provides assignments, events, Battlepass tracks, rewards, friends, and duels.
 
-- **Ученик:** вступление по приглашению с модерацией, сдача и доработка домашних заданий, запись на мероприятия, общий и предметные Battlepass, витрина достижений, друзья и дуэли.
-- **Преподаватель:** задания и проверка работ, мероприятия и управление участниками в рамках назначенной нагрузки «предмет — группа».
-- **Управляющий:** группы, предметы, заявки, преподаватели и их нагрузка, приглашения и награды своего учреждения.
-- **Администратор:** учреждения, назначение управляющих и управление выбранным учреждением.
-- Уведомления в приложении и через WebSocket; фоновые задачи обрабатывают дедлайны и завершение дуэлей раз в 30 секунд.
+The frontend uses Vue 3, Vite, Pinia, and Vue Router. The backend uses FastAPI, SQLAlchemy 2, SQLite, and Alembic.
 
-## Локальный запуск без MAX
+## Features
 
-Нужны **Python 3.11+** и **Node.js 22.12+** (либо Node.js 24 LTS). Ниже команды PowerShell из корня репозитория. Активация virtualenv не требуется.
+- **Student:** join an institution through an invitation, submit and revise assignments, register for events, use institution and subject Battlepass tracks, collect achievements, add friends, and start duels.
+- **Teacher:** create and grade assignments, manage events, and work with students within assigned subject-group workloads.
+- **Manager:** manage groups, subjects, applications, teachers, workloads, invitations, and rewards for an institution.
+- **Administrator:** manage institutions, assign managers, and administer a selected institution.
+- In-app and WebSocket notifications. Background jobs process deadlines and finish duels every 30 seconds.
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r backend/requirements.txt
+## Requirements
+
+The commands below assume Bash on a Debian-based Linux distribution and are run from the repository root.
+
+- Python 3.11 or newer
+- Node.js 22.12 or newer, or Node.js 24 LTS
+- npm
+- Docker Engine and Docker Compose v2 for container deployment
+
+On a minimal Debian or Ubuntu host, install the Python prerequisites with:
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip ca-certificates curl
 ```
 
-Создайте **`backend/.env`** с локальными параметрами. Не копируйте сюда Docker-путь `/data` из корневого `.env.example`.
+Install a supported Node.js version using the method appropriate for your distribution. Verify the installed versions before continuing:
+
+```bash
+python3 --version
+node --version
+npm --version
+```
+
+## Local development without MAX
+
+Create a virtual environment and install the backend dependencies:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -r backend/requirements.txt
+```
+
+Create `backend/.env` with local settings. Do not use the Docker `/data` paths in this file.
 
 ```dotenv
-SECRET_KEY=ВАШ_СЛУЧАЙНЫЙ_СЕКРЕТ_НЕ_КОРОЧЕ_32_СИМВОЛОВ
+SECRET_KEY=REPLACE_WITH_A_RANDOM_SECRET_AT_LEAST_32_CHARACTERS_LONG
 DATABASE_URL=sqlite+aiosqlite:///./data/arena.db
 UPLOAD_DIR=uploads
 BASE_APP_URL=http://localhost:5173
@@ -30,98 +59,112 @@ DEV_AUTH=true
 SEED_DEMO=true
 ```
 
-Секрет можно сгенерировать командой:
+Generate a suitable secret with:
 
-```powershell
-.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(48))"
+```bash
+.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(48))'
 ```
 
-В первом терминале:
+Start the API in the first terminal:
 
-```powershell
-Set-Location backend
-..\.venv\Scripts\python.exe -m alembic upgrade head
-..\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```bash
+cd backend
+../.venv/bin/python -m alembic upgrade head
+../.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Во втором терминале, начиная из корня:
+Start the frontend in a second terminal from the repository root:
 
-```powershell
-Set-Location frontend
+```bash
+cd frontend
 npm ci
 npm run dev -- --port 5173 --strictPort
 ```
 
-Откройте **http://localhost:5173**. На странице входа доступны ученик, его друг, преподаватель, управляющий и администратор. Для смены пользователя нажмите кнопку выхода в шапке (доступна вне MAX в деморежиме) и выберите другую персону. Данные сохраняются в SQLite; сидер не сбрасывает изменения при перезапуске.
+Open <http://localhost:5173>. With demo authentication enabled, the login page provides demo users for the student, teacher, manager, and administrator roles. Sign out from the header to switch users.
 
-- Проверка API: http://localhost:8000/api/health
-- Swagger: http://localhost:8000/docs
-- Vite проксирует `/api`, `/media` и `/ws` на API, поэтому отдельный CORS не нужен.
-- На Linux/macOS используйте `.venv/bin/python` вместо `.venv\Scripts\python.exe` и `cd` вместо `Set-Location`.
+Useful endpoints:
 
-> Демовход разрешён только при одновременном `DEV_AUTH=true` и `SEED_DEMO=true`. Это публичный доступ ко всем деморолям — не включайте его на общедоступном сервере. Используйте отдельную базу для реальных данных. Переменные процесса имеют приоритет над `.env`.
+- API health check: <http://localhost:8000/api/health>
+- Swagger UI: <http://localhost:8000/docs>
+- Vite proxies `/api`, `/media`, and `/ws` to the API, so a separate CORS configuration is not required for local development.
 
-## Docker Compose
+Demo authentication is enabled only when both `DEV_AUTH=true` and `SEED_DEMO=true` are set. It exposes every demo role and must not be enabled on a public server. Use a separate database for real data. Process environment variables override values from `.env`.
 
-Нужны Docker Engine/Desktop и Compose v2.
+## Docker Compose deployment
 
-```powershell
-Copy-Item .env.example .env
-# Укажите настоящий случайный SECRET_KEY в .env.
+Install Docker Engine and the Compose v2 plugin for your Debian-based distribution. From the repository root:
+
+```bash
+cp .env.example .env
+```
+
+Set a random `SECRET_KEY` in `.env`. For a demo deployment, set both `DEV_AUTH=true` and `SEED_DEMO=true`. Start the stack:
+
+```bash
 docker compose up --build -d
 docker compose logs -f api web bot
 ```
 
-Приложение доступно на **http://localhost**, проверка API — **http://localhost/api/health**. Для демонстрации установите оба флага `DEV_AUTH=true`, `SEED_DEMO=true` в корневом `.env` перед запуском.
+The application is available at <http://localhost> and the API health check is at <http://localhost/api/health>.
 
-Внешний порт задаётся переменной `WEB_PORT` в корневом `.env` (по умолчанию `80`). Например, при `WEB_PORT=8080` приложение доступно на **http://localhost:8080**; также обновите `BASE_APP_URL` на этот адрес. Порт внутри контейнера остаётся `80`.
+Set the public port with `WEB_PORT` in the root `.env` (default: `80`). For example, with `WEB_PORT=8080`, use <http://localhost:8080> and set `BASE_APP_URL` to the same URL. The port inside the container remains `80`.
 
-Сервисы:
+Services:
 
-| Сервис | Назначение |
+| Service | Description |
 | --- | --- |
-| `api` | Применяет миграции, запускает FastAPI и планировщик (один worker) |
-| `web` | Собранный frontend и HTTP Nginx на порту 80, прокси API/WebSocket |
-| `bot` | Один экземпляр long polling MAX; без `BOT_TOKEN` остаётся неактивным |
+| `api` | Applies migrations, runs FastAPI, and runs the scheduler in one worker. |
+| `web` | Serves the built frontend through Nginx and proxies the API and WebSocket traffic on port 80. |
+| `bot` | Runs one MAX long-polling instance. It remains inactive when `BOT_TOKEN` is not set. |
 
-SQLite и загруженные файлы хранятся в именованных volumes `database` и `uploads`. `docker compose down` сохраняет их; не используйте `down -v`, если данные нужны. Перед обновлениями делайте согласованную резервную копию SQLite (с остановленным API либо через SQLite backup API) и каталога uploads.
+SQLite data and uploaded files are stored in the named `database` and `uploads` volumes. `docker compose down` keeps these volumes. Do not use `docker compose down -v` if the data is needed. Before upgrades, create a consistent backup of the SQLite database with the API stopped, or use the SQLite backup API, and back up the uploads directory.
 
-Nginx намеренно **HTTP-only**. Для настоящего Mini App нужен внешний HTTPS reverse proxy/балансировщик с корректной цепочкой сертификатов. Проксируйте WebSocket `/ws`, задайте публичный HTTPS-адрес в `BASE_APP_URL`, ограничьте прямой доступ к порту HTTP.
+The bundled Nginx configuration is HTTP-only. A production Mini App requires an external HTTPS reverse proxy or load balancer with a valid certificate chain. Proxy `/ws`, set the public HTTPS URL in `BASE_APP_URL`, and restrict direct access to the HTTP port.
 
-## Переменные окружения
+## Environment variables
 
-Путь `.env` читается относительно текущего рабочего каталога: `backend/.env` при локальном запуске из `backend`, корневой `.env` передаётся сервисам Compose.
+The configuration file is resolved relative to the current working directory. Local development uses `backend/.env` when the API is started from `backend`; Compose passes the root `.env` to its services.
 
-| Переменная | Назначение |
+| Variable | Description |
 | --- | --- |
-| `SECRET_KEY` | Обязательный случайный секрет JWT, минимум 32 символа; одинаковый для экземпляров API. При смене старые токены перестают работать |
-| `DATABASE_URL` | Локально `sqlite+aiosqlite:///./data/arena.db`, в Docker `sqlite+aiosqlite:////data/arena.db` |
-| `UPLOAD_DIR` | Локально `uploads`; Compose переопределяет на `/uploads` для API |
-| `BASE_APP_URL` | Публичный корневой адрес Mini App, без завершающего `/`; локально `http://localhost:5173` |
-| `BOT_TOKEN` | Токен MAX; только на сервере, не во frontend |
-| `BOT_USERNAME` | Имя бота из `https://max.ru/<имя>`, без `@` и без URL; используется в ссылках запуска и кнопке бота |
-| `ADMIN_MAX_ID` | Числовой MAX ID первоначального администратора; роль выдаётся после проверенного MAX-входа |
-| `BOT_API_URL` | `https://platform-api2.max.ru` |
-| `MAX_CA_BUNDLE` | Необязательный путь к доверенному PEM CA, дополняющему системное хранилище клиента бота |
-| `DEV_AUTH` | По умолчанию `false`; только локальная разработка |
-| `SEED_DEMO` | По умолчанию `false`; требует `DEV_AUTH=true`, создаёт демоданные при старте API |
+| `SECRET_KEY` | Required random JWT secret, at least 32 characters. Use the same value for all API instances. Changing it invalidates existing tokens. |
+| `DATABASE_URL` | Local: `sqlite+aiosqlite:///./data/arena.db`. Docker: `sqlite+aiosqlite:////data/arena.db`. |
+| `UPLOAD_DIR` | Local: `uploads`. Compose overrides it to `/uploads` for the API. |
+| `BASE_APP_URL` | Public root URL of the Mini App without a trailing slash. Local default: `http://localhost:5173`. |
+| `BOT_TOKEN` | MAX bot token. Keep it on the server and out of the frontend. |
+| `BOT_USERNAME` | Bot name from `https://max.ru/<name>`, without `@` or the URL. Used in launch links and the bot button. |
+| `ADMIN_MAX_ID` | Numeric MAX ID of the initial administrator. The role is granted after a verified MAX login. |
+| `BOT_API_URL` | MAX API base URL. Default: `https://platform-api2.max.ru`. |
+| `MAX_CA_BUNDLE` | Optional path to a trusted PEM CA bundle that supplements the client's system trust store. |
+| `DEV_AUTH` | Defaults to `false`. Local development only. |
+| `SEED_DEMO` | Defaults to `false`. Requires `DEV_AUTH=true` and creates demo data when the API starts. |
 
-## Подключение MAX
+## Connecting MAX
 
-1. Создайте бота в [MAX для бизнеса](https://business.max.ru/) и получите токен в настройках. Заполните `BOT_TOKEN`, `BOT_USERNAME`, `ADMIN_MAX_ID` и `BASE_APP_URL`.
-2. Опубликуйте приложение по HTTPS и укажите этот URL в настройках мини-приложения бота. Отключите демофлаги и используйте отдельную чистую БД с применёнными миграциями.
-3. Запустите API и frontend. Локально бот запускается отдельной командой из `backend`: `..\.venv\Scripts\python.exe -m app.bot`. В Compose он уже включён.
-4. Реализован **long polling**, не webhook. Не запускайте несколько экземпляров бота с одним токеном и не оставляйте активную webhook-подписку. Удалите её через MAX API до включения polling, если она была настроена ранее.
-5. Отправьте `/start` боту и откройте арену через кнопку. Пользователь без назначения получает статус ожидания; первоначальный администратор создаёт учреждение и в его карточке нажимает «Пригласить управляющего». Одноразовую ссылку нужно передать будущему управляющему; ввод username/ID не требуется.
-6. Управляющий создаёт предметы и группы, связывает их и во вкладке преподавателей создаёт одноразовое приглашение с выбранной нагрузкой. Нагрузка уже принятого преподавателя редактируется отдельно. Ученики вступают по многоразовым ссылкам групп; их заявки требуют одобрения.
+1. Create a bot in [MAX for Business](https://business.max.ru/) and copy its token. Set `BOT_TOKEN`, `BOT_USERNAME`, `ADMIN_MAX_ID`, and `BASE_APP_URL`.
+2. Publish the Mini App over HTTPS and configure this URL in the bot settings. Disable the demo flags and use a clean database with migrations applied.
+3. Start the API and frontend. For local development, start the bot separately from `backend`:
 
-При заданном `BOT_USERNAME` приглашения имеют вид `https://max.ru/<имя>?startapp=<token>`. MAX передаёт токен в подписанном `start_param`. Без имени бота API отдаёт обычный адрес `BASE_APP_URL` с `group_token`/`invite_token` — это удобно для локальной разработки, но обычная браузерная ссылка сама по себе не даёт MAX-авторизацию. Новая ученическая ссылка группы отзывает предыдущую. Приглашения преподавателей и управляющих строго одноразовые: после успешной активации ссылка не работает ни для другого пользователя, ни для того же аккаунта. Обычный вход после активации выполняется без ссылки-приглашения. Неиспользованные приглашения можно отозвать в интерфейсе; приглашать управляющих может только администратор.
+   ```bash
+   ../.venv/bin/python -m app.bot
+   ```
 
-### TLS и сертификаты
+   Compose starts the bot service automatically.
 
-Проверка TLS всегда включена. Если системное хранилище не доверяет сертификату MAX API, получите доверенный корневой CA из официального источника и задайте `MAX_CA_BUNDLE`. Не отключайте проверку сертификата.
+4. The bot uses long polling, not webhooks. Do not run multiple instances with the same token or leave an active webhook subscription. Remove an old webhook through the MAX API before enabling polling.
+5. Send `/start` to the bot and open the arena using its button. A user without an assignment enters the pending state. The initial administrator creates an institution and selects "Invite manager" in its card. Pass the one-time link to the future manager; a username or ID is not required.
+6. A manager creates subjects and groups, links them, and creates a one-time teacher invitation with the required workload. The workload of an accepted teacher can be edited separately. Students join through reusable group links, and their applications require approval.
 
-Для контейнера PEM должен быть доступен **внутри `bot`**. Например, добавьте локальный `compose.override.yaml`:
+When `BOT_USERNAME` is set, invitations use `https://max.ru/<name>?startapp=<token>`. MAX passes the token in the signed `start_param`. Without a bot name, the API returns a regular `BASE_APP_URL` link with `group_token` or `invite_token`. This is useful for local development, but a regular browser link does not provide MAX authentication by itself.
+
+A new student group link revokes the previous one. Teacher and manager invitations are strictly one-time: after successful activation, a link cannot be used by another user or the same account again. Normal login after activation does not require an invitation link. Unused invitations can be revoked in the UI. Only administrators can invite managers.
+
+### TLS and certificates
+
+TLS verification is always enabled. If the system trust store does not trust the MAX API certificate, obtain the trusted root CA from an official source and set `MAX_CA_BUNDLE`. Never disable certificate verification.
+
+For Compose, the PEM file must be available inside the `bot` container. Create a local `compose.override.yaml`, for example:
 
 ```yaml
 services:
@@ -132,73 +175,67 @@ services:
       MAX_CA_BUNDLE: /certs/max-ca.pem
 ```
 
-Значение из `environment` в override имеет приоритет над пустым `MAX_CA_BUNDLE=` в `.env`.
-После изменения CA/override пересоздайте контейнер: `docker compose up -d --force-recreate bot`.
-`ConnectTimeout` при TLS-handshake означает таймаут соединения, а не ошибку доверия CA;
-проверяйте исходящий HTTPS с сервера/контейнера, DNS и настройки прокси. Не отключайте TLS-проверку.
+The `environment` value in the override takes precedence over an empty `MAX_CA_BUNDLE=` in `.env`. Recreate the container after changing the CA or override file:
 
-### Диагностика бота
-
-- `GET /updates → 200` подтверждает успешный HTTPS-запрос и доступ к обновлениям; последующий
-  `POST /messages → 404` — отдельная ошибка отправки. Бот пишет HTTP-статус, `code` и `message`
-  ответа MAX, не выводя токен и содержимое обновления.
-- Личные ответы (`bot_started`, сообщения с `chat_type=dialog`) отправляются по ID пользователя,
-  групповые — по ID чата. Не подставляйте ID пользователя в `chat_id`.
-- Постоянные ошибки отправки `4xx` пропускаются, чтобы одно событие не блокировало очередь.
-  Для `401`, `408`, `429`, сетевых ошибок и `5xx` marker не продвигается, запрос повторяется;
-  при повторе пачки уже отправленные приветствия могут дублироваться.
-- Запросы посторонних сканеров к `.env` не связаны с MAX. SPA fallback может возвращать HTML
-  приложения с `200` для несуществующих адресов; это не доказательство утечки файла.
-  Nginx явно возвращает `404` для скрытых файлов и каталогов.
-
-### Авторизация и Bridge
-
-Frontend передаёт необработанный `window.WebApp.initData` серверу. Сервер проверяет двухэтапный HMAC-SHA256, срок действия (1 час), дубли параметров и идентификатор пользователя. `initDataUnsafe` не используется для авторизации. После входа JWT хранится в `sessionStorage`; WebSocket получает отдельный ticket со сроком 1 минута, а не токен в URL.
-
-Подключён официальный MAX Bridge (`https://st.max.ru/js/max-web-app.js`), поддержаны BackButton, подтверждённый телефон и скачивание вложений. В обычном браузере вложения открываются обычной ссылкой; в MAX для скачивания нужен HTTPS.
-
-Официальные справочники: [Bridge](https://dev.max.ru/docs/webapps/bridge/), [валидация](https://dev.max.ru/docs/webapps/validation/), [Mini Apps](https://dev.max.ru/docs/webapps/introduction/), [Bot API](https://dev.max.ru/docs-api/).
-
-## Проверки
-
-Из `backend`:
-
-```powershell
-..\.venv\Scripts\python.exe -m pytest -q
-..\.venv\Scripts\ruff.exe check app migrations tests
+```bash
+docker compose up -d --force-recreate bot
 ```
 
-Из `frontend`:
+`ConnectTimeout` during a TLS handshake indicates a connection timeout, not a CA trust error. Check outbound HTTPS connectivity, DNS, and proxy settings from the host or container. Do not disable TLS verification.
 
-```powershell
+### Bot diagnostics
+
+- `GET /updates -> 200` confirms a successful HTTPS request and access to updates. A later `POST /messages -> 404` is a separate send error. The bot logs the MAX HTTP status, `code`, and `message` without logging the token or update contents.
+- Direct replies (`bot_started` and messages with `chat_type=dialog`) use the user ID. Group replies use the chat ID. Do not put a user ID in `chat_id` for a group message.
+- Permanent `4xx` send errors are skipped so one event cannot block the queue. For `401`, `408`, `429`, network errors, and `5xx`, the marker is not advanced and the request is retried. A retried batch can duplicate greetings that were already sent.
+- Requests from scanners for `.env` are unrelated to MAX. The SPA fallback can return the application HTML with `200` for an unknown path; that does not indicate a file leak. Nginx explicitly returns `404` for hidden files and directories.
+
+### Authentication and Bridge
+
+The frontend sends the raw `window.WebApp.initData` to the server. The server verifies the two-stage HMAC-SHA256 signature, one-hour expiration, duplicate parameters, and user ID. `initDataUnsafe` is not used for authentication. After login, the JWT is stored in `sessionStorage`. WebSocket connections use a separate one-minute ticket instead of placing the token in the URL.
+
+The official MAX Bridge (`https://st.max.ru/js/max-web-app.js`) is enabled. The application supports BackButton, verified phone numbers, and attachment downloads. In a regular browser, attachments use regular links; MAX requires HTTPS for downloads.
+
+Official references: [Bridge](https://dev.max.ru/docs/webapps/bridge/), [validation](https://dev.max.ru/docs/webapps/validation/), [Mini Apps](https://dev.max.ru/docs/webapps/introduction/), [Bot API](https://dev.max.ru/docs-api/).
+
+## Checks
+
+Run backend checks from `backend`:
+
+```bash
+cd backend
+../.venv/bin/python -m pytest -q
+../.venv/bin/python -m ruff check app migrations tests
+```
+
+Run frontend checks from `frontend`:
+
+```bash
+cd frontend
 npm test
 npm run build
 ```
 
-Backend-тесты используют временную SQLite и тестовые credentials, не обращаются в MAX и не меняют рабочую базу. Проверяются подпись и вход, сидер, идемпотентность начислений, конкурентная проверка ДЗ, доработка, приглашения и модерация, мероприятия, дуэли и цикл миграций. Frontend-тесты проверяют защиту от ответов и WebSocket-событий предыдущей сессии после выхода или повторного входа.
+Backend tests use a temporary SQLite database and test credentials. They do not call MAX or modify the working database. They cover authentication, signatures, the demo seeder, idempotent rewards, concurrent assignment grading, revisions, invitations, moderation, events, duels, and migration cycles. Frontend tests cover session isolation after logout and re-login.
 
-## Правила и ограничения
+## Constraints
 
-- Дуэль учитывает только академические начисления ДЗ/мероприятий внутри её временного окна и учреждения. PvP-бонусы не увеличивают счёт дуэли. Награды и начисления защищены от повторной обработки.
-- Даты API передаются с часовым поясом и нормализуются в UTC; интерфейс показывает местное время.
-- SQLite использует WAL и сериализацию бизнес-транзакций. Это прототип для одного API worker с одним планировщиком, а не конфигурация для горизонтального масштабирования.
-- Вложения: до 10 на материал, до 20 МБ на файл, разрешённые расширения ограничены. Файлы доступны по непрогнозируемым `/media/...` ссылкам **без отдельной авторизации скачивания**. Не храните здесь конфиденциальные документы; для промышленной эксплуатации нужны ACL/подписанные ссылки, антивирус и очистка неиспользуемых загрузок.
-- Уведомления реализованы внутри Mini App; бот отправляет приветствие и кнопку запуска, но не рассылает все уведомления в личные сообщения MAX.
-- Фоновые задачи, аватары/изображения CDN и MAX Bridge зависят от доступности внешней сети. Поддержка реальных клиентов MAX и доверия CA требует проверки с настроенным ботом.
-- Начальная Alembic-миграция использует текущую metadata моделей. Перед дальнейшей эволюцией схемы зафиксируйте её и добавляйте самостоятельные версионированные миграции.
+- A duel counts only academic assignment and event points recorded inside its time window and institution. PvP bonuses do not affect the duel score. Rewards and points are idempotent.
+- API dates include time zones and are normalized to UTC. The UI displays local time.
+- SQLite uses WAL mode and serialized business transactions. This prototype is designed for one API worker and one scheduler, not horizontal scaling.
+- Each material can have up to 10 attachments, each up to 20 MB. Allowed extensions are restricted. Files are served through unpredictable `/media/...` URLs without separate download authorization. Do not store confidential documents. Production use requires ACLs or signed URLs, antivirus scanning, and cleanup of unused uploads.
+- Notifications are implemented inside the Mini App. The bot sends a greeting and a launch button, but it does not send every notification to MAX direct messages.
+- Background jobs, CDN avatars/images, and the MAX Bridge require external network access. Real MAX client and CA trust must be tested with a configured bot.
+- The initial Alembic migration is generated from the current model metadata. Before changing the schema, freeze the baseline and add independent versioned migrations.
 
-### Статус проверки
-
-Локально проверены API, чистая миграция SQLite, демовход всех ролей, сохранение нагрузки преподавателя, приглашения и выбор учреждения администратором. Проверки через настоящий MAX, а также сборка/запуск Compose требуют отдельного окружения с Docker, настроенным ботом и HTTPS. Они не заменяются интеграционными тестами с тестовыми подписями.
-
-## Структура
+## Repository layout
 
 ```text
-backend/app/          модели, API, правила начислений, бот, сидер и scheduler
-backend/migrations/  Alembic
-backend/tests/       интеграционные и security-тесты
-frontend/src/        Vue-компоненты, страницы ролей, router и Pinia
-frontend/tests/      тесты жизненного цикла сессии
-nginx/default.conf   HTTP-прокси и раздача frontend/uploads
-compose.yaml         API, бот, web и volumes
+backend/app/          models, API routes, business rules, bot, seeder, and scheduler
+backend/migrations/   Alembic migrations
+backend/tests/        integration and security tests
+frontend/src/         Vue components, role pages, router, and Pinia stores
+frontend/tests/       session lifecycle tests
+nginx/default.conf    HTTP proxy and frontend/upload serving
+compose.yaml          API, bot, web, and volumes
 ```
