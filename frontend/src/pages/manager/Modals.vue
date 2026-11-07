@@ -174,8 +174,7 @@ const { store, route, router, tab, catalog, members, requests, invites, rewards,
         <div class="form-grid">
           <label class="field-label"
             >Тип награды<select v-model="reward.kind" @change="reward.frame_style = reward.kind === 'FRAME' ? (reward.frame_style || frameStyles[0].id) : null; reward.name = reward.kind === 'FRAME' ? (frameStyles.find(item => item.id === reward.frame_style)?.name || '') : reward.name">
-              <option value="BADGE">Достижение</option>
-              <option value="TITLE">Звание</option>
+               <option value="TITLE">Звание</option>
               <option value="FRAME">Рамка профиля</option>
               <option value="CUSTOM">Своя награда</option>
             </select></label
@@ -188,7 +187,7 @@ const { store, route, router, tab, catalog, members, requests, invites, rewards,
               required
           /></label>
         </div>
-         <p class="muted">Уровень будет добавлен в выбранный боевой пропуск.</p><label class="field-label"
+         <p class="muted">Награда будет добавлена в выбранный боевой пропуск.</p><label class="field-label"
           >Символ<select v-model="reward.icon">
             <option
               v-for="name in [

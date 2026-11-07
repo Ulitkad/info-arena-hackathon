@@ -6,7 +6,7 @@ from .models import (
     Duel, Event, EventGroup, EventParticipant, Friendship, Group, GroupSubject, Homework,
     HomeworkGroup, Inventory, JoinRequest, Organization, Reward, Subject, Submission, TeacherLoad, User, now,
 )
-from .services import award, init_progress, notify, seed_rewards
+from .services import award, init_progress, notify, seed_all_achievements, seed_rewards
 
 
 async def seed_demo(db):
@@ -24,6 +24,7 @@ async def seed_demo(db):
     db.add_all([group, group2, *subjects])
     await db.flush()
     await seed_rewards(db, oid)
+    await seed_all_achievements(db, oid, [subject.id for subject in subjects])
     for subject in subjects:
         await seed_rewards(db, oid, subject.id)
         for g in (group, group2):
@@ -92,11 +93,15 @@ async def seed_demo(db):
     db.add(EventParticipant(event_id=event.id, user_id=friend.id))
     titles = (await db.scalars(select(Reward).join(Inventory).where(Inventory.user_id == student.id, Reward.kind == "TITLE", Reward.subject_id.is_(None)))).all()
     frames = (await db.scalars(select(Reward).join(Inventory).where(Inventory.user_id == student.id, Reward.kind == "FRAME", Reward.subject_id.is_(None)))).all()
-    badges = (await db.scalars(select(Reward).join(Inventory).where(Inventory.user_id == student.id, Reward.kind == "BADGE"))).all()
+    from .models import Achievement, UserAchievement
+    demo_achievements = (await db.scalars(select(Achievement).where(Achievement.organization_id == oid).limit(3))).all()
+    for achievement in demo_achievements:
+        if not await db.get(UserAchievement, (student.id, achievement.id)):
+            db.add(UserAchievement(user_id=student.id, achievement_id=achievement.id))
     student.active_title_id = titles[0].id if titles else None
     student.active_frame_id = frames[0].id if frames else None
     student.active_frame_style = frames[0].frame_style if frames else None
-    student.showcase = [r.id for r in badges[:3]]
+    student.showcase = [achievement.id for achievement in demo_achievements]
     await notify(db, student.id, "Твоя арена готова", "Учись, открывай награды и бросай вызов друзьям!", "/")
     await notify(db, student.id, "Новое задание", "Алгоритмы вокруг нас · +1 балл", "/arena")
     await notify(db, manager.id, "Новая заявка в ИС-21", pending.display_name, "/manage/requests")

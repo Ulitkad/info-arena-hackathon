@@ -5,7 +5,7 @@ from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import func, or_, select
 
-from ..models import Duel, GroupSubject, Inventory, PointLedger, Reward, User, now
+from ..models import Duel, GroupSubject, PointLedger, User, now
 from ..security import fail
 from .notifications import notify
 from .progress import award
@@ -61,9 +61,6 @@ async def finish_duel(db, duel):
         duel.winner_id = winner.id
         winner.duel_wins += 1
         await award(db, winner, 10, "DUEL", duel.id, "Победа в дуэли")
-        badge = await db.scalar(select(Reward).where(Reward.organization_id == winner.organization_id, Reward.special.is_(True)))
-        if badge and not await db.get(Inventory, (winner.id, badge.id)):
-            db.add(Inventory(user_id=winner.id, reward_id=badge.id))
         for player in players:
             await notify(db, player.id, "Дуэль завершена", f"{winner.display_name} побеждает {a}:{b}. Победителю +10 баллов", "/friends")
     await db.flush()

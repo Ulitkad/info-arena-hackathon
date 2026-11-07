@@ -12,7 +12,7 @@ from ..frame_styles import DEFAULT_FRAME_STYLE
 from ..security import current_user, fail, require, scope
 from ..services import (
     activate_student, create_invite, find_user, init_progress, notify, public_user, row,
-    seed_rewards, unlock_rewards, validate_assignments, validate_files,
+    seed_all_achievements, seed_rewards, unlock_rewards, validate_assignments, validate_files,
 )
 
 router = APIRouter(prefix="/api")
@@ -43,6 +43,7 @@ async def create_organization(data: s.NameInput, user: User = Depends(current_us
     db.add(organization)
     await db.flush()
     await seed_rewards(db, organization.id)
+    await seed_all_achievements(db, organization.id)
     return row(organization)
 
 
@@ -116,6 +117,7 @@ async def create_subject(oid: int, data: s.SubjectInput, user: User = Depends(cu
     db.add(subject)
     await db.flush()
     await seed_rewards(db, oid, subject.id)
+    await seed_all_achievements(db, oid, [subject.id])
     return row(subject)
 
 
@@ -346,6 +348,7 @@ async def rewards(oid: int, user: User = Depends(current_user), db: AsyncSession
     if user.role == "TEACHER":
         subject_ids = select(TeacherLoad.subject_id).where(TeacherLoad.teacher_id == user.id)
         query = query.where(Reward.subject_id.in_(subject_ids))
+    query = query.where(Reward.kind != "BADGE")
     return [row(item) for item in (await db.scalars(query.order_by(Reward.threshold, Reward.id))).all()]
 
 

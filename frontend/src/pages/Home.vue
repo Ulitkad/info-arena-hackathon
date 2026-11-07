@@ -20,7 +20,7 @@ import { onBeforeUnmount } from 'vue'
 onBeforeUnmount(() => clearInterval(interval))
 const active = computed(() => store.duels.filter(d => ['ACTIVE', 'PENDING'].includes(d.status)).slice(0, 3))
 const wins = computed(() => store.user?.duel_wins || 0)
-const displayRewards = computed(() => store.user?.showcase?.map(id => rewards.value.find(r => r.id === id)).filter(Boolean).slice(0, 3) || [])
+const displayRewards = computed(() => store.user?.showcase?.map(id => store.achievements.find(r => r.id === id)).filter(Boolean).slice(0, 3) || [])
 const nextDeadline = computed(() => store.homework.filter(h => !h.submission && !h.optional).sort((a, b) => new Date(a.deadline) - new Date(b.deadline))[0])
 function until(value) {
   const seconds = Math.max(0, Math.floor((new Date(value + (value.endsWith('Z') ? '' : 'Z')).getTime() - tick.value) / 1000))
@@ -37,7 +37,7 @@ function until(value) {
         <div v-if="store.user.active_title_id && displayRewards.length" class="active-title"><Icon name="crown" :size="15" />{{ rewards.find(r => r.id === store.user.active_title_id)?.name }}</div>
         <div class="profile-divider"></div><div class="profile-stats"><div><span class="stat-icon wins"><Icon name="trophy" :size="17" /></span><strong>{{ wins }}</strong><small>побед в дуэлях</small></div><div><span class="stat-icon awards"><Icon name="award" :size="17" /></span><strong>{{ rewards.length }}</strong><small>открытых наград</small></div><div><span class="stat-icon subjects"><Icon name="book" :size="17" /></span><strong>{{ store.passes.length || 1 }}</strong><small>боевых пропусков</small></div></div>
       </div>
-      <div class="showcase"><div class="section-label"><span>Витрина достижений</span><router-link to="/settings">Изменить</router-link></div><div class="showcase-row"><div v-for="(item, i) in displayRewards" :key="item.id" class="achievement"><span class="achievement-icon" :class="`achievement-${item.kind.toLowerCase()}`"><Icon :name="item.icon || 'award'" :size="18" /></span><span><strong>{{ item.name }}</strong><small>{{ item.kind === 'BADGE' ? 'Знак отличия' : item.kind === 'FRAME' ? 'Рамка профиля' : 'Звание' }}</small></span></div><div v-for="n in Math.max(0, 3 - displayRewards.length)" :key="`empty-${n}`" class="achievement empty-achievement"><span class="achievement-icon"><Icon name="plus" :size="17" /></span><span><strong>Новая цель</strong><small>Продолжай учиться</small></span></div></div></div>
+      <div class="showcase"><div class="section-label"><span>Витрина достижений</span><router-link to="/settings">Изменить</router-link></div><div class="showcase-row"><div v-for="item in displayRewards" :key="item.id" class="achievement"><span class="achievement-icon achievement-badge"><Icon :name="item.icon || 'award'" :size="18" /></span><span><strong>{{ item.name }}</strong><small>Достижение</small></span></div><div v-for="n in Math.max(0, 3 - displayRewards.length)" :key="`empty-${n}`" class="achievement empty-achievement"><span class="achievement-icon"><Icon name="plus" :size="17" /></span><span><strong>Новая цель</strong><small>Продолжай учиться</small></span></div></div></div>
     </section>
     <section class="home-side">
       <div class="section-head"><div><span class="eyebrow">ТВОЙ ПРОГРЕСС</span><h2>Боевые пропуски</h2></div><router-link class="text-arrow" to="/battlepass">Все пропуски <Icon name="arrow-right" :size="15" /></router-link></div>

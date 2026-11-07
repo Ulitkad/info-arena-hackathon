@@ -1,0 +1,6 @@
+.achievement-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:var(--space-4);margin-top:var(--space-5)}
+.achievement-card{display:flex;align-items:flex-start;gap:var(--space-4);padding:var(--space-5);min-height:7rem}
+.achievement-card p{margin:.35rem 0;color:var(--muted);font-size:var(--font-body-sm);line-height:1.45}
+.achievement-card small{color:var(--muted);font-size:var(--font-caption)}
+.achievement-card.locked{opacity:.62;filter:saturate(.35)}
+.achievements-page>.section-head p{margin:.4rem 0 0}

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import schemas as s
 from ..db import session_dep
-from ..models import Duel, Friendship, GroupSubject, PointLedger, Reward, User, now
+from ..models import Achievement, Duel, Friendship, GroupSubject, PointLedger, Reward, User, UserAchievement, now
 from ..security import current_user, fail, require
 from ..services import duel_scores, duel_slots, finish_duel, notify, public_user, row, start_duel
 
@@ -37,14 +37,17 @@ async def user_profile(uid: int, user: User = Depends(current_user), db: AsyncSe
     target = await db.get(User, uid)
     if not target or target.organization_id != user.organization_id or target.role != "STUDENT":
         fail("Профиль не найден", 404)
-    reward_ids = [rid for rid in [target.active_title_id, target.active_frame_id, *target.showcase] if rid]
+    reward_ids = [rid for rid in [target.active_title_id, target.active_frame_id] if rid]
     rewards = (await db.scalars(select(Reward).where(Reward.id.in_(reward_ids)))).all()
+    achievements = (await db.scalars(select(Achievement).join(UserAchievement, UserAchievement.achievement_id == Achievement.id).where(
+        UserAchievement.user_id == target.id, Achievement.id.in_(target.showcase or []),
+    ))).all()
     low, high = sorted([user.id, uid])
     friendship = await db.scalar(select(Friendship).where(Friendship.low_id == low, Friendship.high_id == high))
     my_subjects = (await db.scalars(select(GroupSubject.subject_id).where(GroupSubject.group_id == user.group_id))).all()
     their_subjects = (await db.scalars(select(GroupSubject.subject_id).where(GroupSubject.group_id == target.group_id))).all()
     return {**public_user(target), "active_frame_style": target.active_frame_style,
-            "rewards": [row(item) for item in rewards],
+            "rewards": [row(item) for item in rewards], "achievements": [row(item) for item in achievements],
             "friendship": row(friendship) if friendship else None, "common_subject_ids": sorted(set(my_subjects) & set(their_subjects))}
 
 
@@ -77,6 +80,9 @@ async def request_friend(uid: int, user: User = Depends(current_user), db: Async
         if item.status == "PENDING" and item.requester_id != user.id:
             item.status = "ACCEPTED"
             await notify(db, uid, "Теперь вы друзья", user.display_name, f"/users/{user.id}")
+            from ..services import evaluate_achievements
+            await evaluate_achievements(db, user)
+            await evaluate_achievements(db, other)
         elif item.status == "REJECTED":
             item.status, item.requester_id = "PENDING", user.id
             await notify(db, uid, "Заявка в друзья", user.display_name, "/friends?tab=requests")
@@ -102,6 +108,9 @@ async def respond_friend(fid: int, data: s.Moderation, user: User = Depends(curr
     item.status = "ACCEPTED" if data.approve else "REJECTED"
     if data.approve:
         await notify(db, item.requester_id, "Теперь вы друзья", user.display_name, f"/users/{user.id}")
+        from ..services import evaluate_achievements
+        await evaluate_achievements(db, user)
+        await evaluate_achievements(db, other)
     return {"ok": True}
 
 

@@ -11,7 +11,7 @@ export const useArena = defineStore('arena', () => {
   const social = createSocialState()
   const notificationState = createNotificationState()
   const { user, config, loading, error, revision, saving, connected } = session
-  const { passes, inventory, homework, events } = learning
+  const { passes, inventory, homework, events, achievements } = learning
   const { duels } = social
   const { notifications, unread, toasts } = notificationState
   let socket, reconnect, heartbeat, toastTimer, toastSequence = 0, stopped = false
@@ -42,9 +42,9 @@ export const useArena = defineStore('arena', () => {
   async function refreshStudent() {
     if (user.value?.role !== 'STUDENT') return
     const version = session.currentVersion()
-    const result = await Promise.all([api('/battlepasses'), api('/inventory'), api('/duels'), api('/homework'), api('/events')])
+    const result = await Promise.all([api('/battlepasses'), api('/inventory'), api('/achievements'), api('/duels'), api('/homework'), api('/events')])
     if (version !== session.currentVersion()) return
-    ;[passes.value, inventory.value, duels.value, homework.value, events.value] = result
+    ;[passes.value, inventory.value, achievements.value, duels.value, homework.value, events.value] = result
     await refreshUser()
   }
   async function refreshNotifications() {
@@ -89,6 +89,7 @@ export const useArena = defineStore('arena', () => {
         if (items.length) {
           refreshNotifications().catch(() => {})
           refreshUser().catch(() => {})
+          if (user.value?.role === 'STUDENT') refreshStudent().catch(() => {})
           revision.value++
         }
       }
@@ -163,7 +164,7 @@ export const useArena = defineStore('arena', () => {
     learning.reset(); social.reset(); notificationState.reset(); error.value = ''
     loading.value = false
   }
-  return { user, config, loading, error, passes, inventory, duels, homework, events, notifications, unread,
+  return { user, config, loading, error, passes, inventory, achievements, duels, homework, events, notifications, unread,
     toasts, revision, saving, connected, initialize, demo, logout, toast, dismiss, run, refreshUser,
     refreshStudent, refreshNotifications, disconnect }
 })

@@ -29,7 +29,7 @@ const editingTeacher = ref(null), inviteRole = ref('');
 const renameTarget = ref(null), renameName = ref('');
 const reward = ref({
   name: "",
-  kind: "BADGE",
+  kind: "TITLE",
   threshold: 10,
   subject_id: "",
   asset_url: null,
@@ -229,7 +229,7 @@ async function saveReward() {
   );
   reward.value = {
     name: "",
-    kind: "BADGE",
+    kind: "TITLE",
     threshold: 10,
     subject_id: "",
     asset_url: null,
@@ -256,7 +256,7 @@ function resetReward() {
   editRewardId.value = null;
   reward.value = {
     name: "",
-    kind: "BADGE",
+    kind: "TITLE",
     threshold: 10,
     subject_id: selectedRewardScope.value === "general" ? "" : String(selectedRewardScope.value),
     asset_url: null,

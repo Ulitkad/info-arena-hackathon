@@ -54,7 +54,7 @@ const manager = inject('manager-page');
             ><strong>{{ item.name }}</strong
             ><small
               >{{
-                  { TITLE: "Звание", FRAME: "Рамка", BADGE: "Достижение", CUSTOM: "Кастомная награда" }[
+                   { TITLE: "Звание", FRAME: "Рамка", CUSTOM: "Кастомная награда" }[
                   item.kind
                 ]
               }}

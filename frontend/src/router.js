@@ -6,6 +6,7 @@ export default createRouter({
   routes: [
     { path: '/', component: () => import('./pages/Home.vue'), meta: { title: 'Моя арена', roles: ['STUDENT'] } },
     { path: '/battlepass/:id?', component: () => import('./pages/Battlepass.vue'), meta: { title: 'Боевые пропуски', roles: ['STUDENT'] } },
+    { path: '/achievements', component: () => import('./pages/Achievements.vue'), meta: { title: 'Достижения', roles: ['STUDENT'] } },
     { path: '/arena', component: () => import('./pages/Arena.vue'), meta: { title: 'Инфо-арена', roles: ['STUDENT'] } },
     { path: '/friends', component: () => import('./pages/Friends.vue'), meta: { title: 'Друзья и дуэли', roles: ['STUDENT'] } },
     { path: '/users/:id', component: () => import('./pages/Profile.vue'), meta: { title: 'Профиль участника', roles: ['STUDENT'] } },

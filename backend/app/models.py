@@ -112,6 +112,28 @@ class Inventory(Base):
     unlocked_at: Mapped[datetime] = mapped_column(default=now)
 
 
+class Achievement(Base):
+    __tablename__ = "achievements"
+    __table_args__ = (UniqueConstraint("organization_id", "subject_id", "code", "threshold"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    subject_id: Mapped[int | None] = mapped_column(ForeignKey("subjects.id", ondelete="CASCADE"), index=True)
+    code: Mapped[str] = mapped_column(String(50), index=True)
+    threshold: Mapped[int] = mapped_column(Integer, default=1)
+    name: Mapped[str] = mapped_column(String(100))
+    description: Mapped[str] = mapped_column(String(240), default="")
+    icon: Mapped[str] = mapped_column(String(30), default="award")
+    hidden: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(default=now)
+
+
+class UserAchievement(Base):
+    __tablename__ = "user_achievements"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    achievement_id: Mapped[int] = mapped_column(ForeignKey("achievements.id", ondelete="CASCADE"), primary_key=True)
+    unlocked_at: Mapped[datetime] = mapped_column(default=now)
+
+
 class Progress(Base):
     __tablename__ = "progress"
     __table_args__ = (UniqueConstraint("user_id", "scope"), CheckConstraint("points >= 0"))
@@ -174,6 +196,7 @@ class Submission(Base):
     files: Mapped[list] = mapped_column(JSON, default=list)
     status: Mapped[str] = mapped_column(String(20), default="SUBMITTED")
     feedback: Mapped[str] = mapped_column(Text, default="")
+    revision_count: Mapped[int] = mapped_column(default=0)
     submitted_at: Mapped[datetime] = mapped_column(default=now)
 
 

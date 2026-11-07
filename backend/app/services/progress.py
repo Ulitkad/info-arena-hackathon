@@ -5,6 +5,7 @@ from sqlalchemy import select
 from ..models import GroupSubject, Inventory, PointLedger, Progress, Reward, User
 from ..frame_styles import DEFAULT_FRAME_STYLE
 from ..security import fail
+from .achievements import evaluate_achievements
 from .notifications import notify
 
 
@@ -22,17 +23,15 @@ async def init_progress(db, user):
 
 async def seed_rewards(db, organization_id, subject_id=None):
     definitions = [
-        ("Первый шаг", "BADGE", 1, "sparkles", None), ("На старте", "TITLE", 5, "star", None),
-        ("Небесная рамка", "FRAME", 10, "shield", "skyline"), ("В потоке", "BADGE", 20, "flame", None),
-        ("Исследователь", "TITLE", 35, "award", None), ("Облачная рамка", "FRAME", 50, "sparkles", "aurora"),
-        ("Выше облаков", "BADGE", 75, "crown", None), ("Легенда арены", "TITLE", 100, "crown", None),
+        ("На старте", "TITLE", 5, "star", None),
+        ("Небесная рамка", "FRAME", 10, "shield", "skyline"),
+        ("Исследователь", "TITLE", 35, "award", None),
+        ("Облачная рамка", "FRAME", 50, "sparkles", "aurora"),
+        ("Легенда арены", "TITLE", 100, "crown", None),
     ]
     for name, kind, threshold, icon, frame_style in definitions:
         db.add(Reward(organization_id=organization_id, subject_id=subject_id, name=name, kind=kind,
                       threshold=threshold, icon=icon, frame_style=frame_style or (DEFAULT_FRAME_STYLE if kind == "FRAME" else None)))
-    if subject_id is None:
-        db.add(Reward(organization_id=organization_id, name="Дуэлянт", kind="BADGE", threshold=0,
-                      icon="swords", special=True))
     await db.flush()
 
 
@@ -73,4 +72,5 @@ async def award(db, user: User, points: int, source_kind: str, source_id: int, l
     await unlock_rewards(db, user)
     if subject_id:
         await unlock_rewards(db, user, subject_id)
+    await evaluate_achievements(db, user)
     return True

@@ -27,7 +27,7 @@ const canChallenge = computed(() => friendship.value?.status === 'ACCEPTED')
 const challenges = computed(() => store.passes.filter((pass) => pass.subject_id && profile.value?.common_subject_ids?.includes(pass.subject_id)))
 const title = computed(() => profile.value?.rewards?.find((reward) => reward.id === profile.value?.active_title_id))
 const frame = computed(() => profile.value?.rewards?.find((reward) => reward.id === profile.value?.active_frame_id))
-const badges = computed(() => profile.value?.showcase?.map((id) => profile.value.rewards.find((reward) => reward.id === id)).filter(Boolean) || [])
+const badges = computed(() => profile.value?.showcase?.map((id) => profile.value.achievements?.find((reward) => reward.id === id)).filter(Boolean) || [])
 
 async function add() {
   await store.run(async () => { profile.value.friendship = await post(`/friends/${profile.value.id}`) }, 'Заявка отправлена')

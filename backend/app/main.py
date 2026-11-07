@@ -5,13 +5,15 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
 from .config import get_settings
 from .db import Session, engine
 from .jobs import run_jobs
+from .models import Organization, Subject
 from .routes import auth, learning, manage, notifications, social
+from .services import seed_all_achievements
 
 logging.basicConfig(level=logging.INFO)
 settings = get_settings()
@@ -20,6 +22,12 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
+    async with Session() as db:
+        organizations = (await db.scalars(select(Organization))).all()
+        for organization in organizations:
+            subjects = (await db.scalars(select(Subject.id).where(Subject.organization_id == organization.id))).all()
+            await seed_all_achievements(db, organization.id, subjects)
+        await db.commit()
     if settings.seed_demo:
         from .seed import seed_demo
         async with Session() as db:

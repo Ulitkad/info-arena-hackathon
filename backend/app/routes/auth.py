@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .. import schemas as s
 from ..config import get_settings
 from ..db import session_dep
-from ..models import Group, Inventory, JoinRequest, Organization, Reward, User
+from ..models import Achievement, Group, Inventory, JoinRequest, Organization, Reward, User, UserAchievement
 from ..repositories import UserRepository
 from ..security import create_token, current_user, fail, validate_init_data
 from ..services import accept_invite, public_user, row
@@ -93,8 +93,10 @@ async def customize(data: s.ProfileInput, user: User = Depends(current_user), db
     await owned(data.active_frame_id, "FRAME")
     if len(set(data.showcase)) != len(data.showcase):
         fail("Выберите разные достижения")
-    for rid in data.showcase:
-        await owned(rid, "BADGE")
+    for aid in data.showcase:
+        achievement = await db.get(Achievement, aid)
+        if not achievement or achievement.organization_id != user.organization_id or not await db.get(UserAchievement, (user.id, aid)):
+            fail("Достижение еще не открыто", 403)
     frame = await db.get(Reward, data.active_frame_id) if data.active_frame_id else None
     user.active_title_id, user.active_frame_id, user.active_frame_style, user.showcase = data.active_title_id, data.active_frame_id, frame.frame_style if frame else None, data.showcase
     return {"ok": True}

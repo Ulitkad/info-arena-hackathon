@@ -19,7 +19,7 @@ const pending = computed(() => store.user?.role === 'PENDING')
 const title = computed(() => route.meta.title || 'Инфо Арена')
 const nav = computed(() => {
   if (store.user?.role === 'STUDENT') return [
-    { to: '/', title: 'Главная', icon: 'home' }, { to: '/battlepass', title: 'Пропуск', icon: 'layers' },
+    { to: '/', title: 'Главная', icon: 'home' }, { to: '/battlepass', title: 'Пропуск', icon: 'layers' }, { to: '/achievements', title: 'Достижения', icon: 'award' },
     { to: '/arena', title: 'Арена', icon: 'target' }, { to: '/friends', title: 'Друзья', icon: 'users' },
   ]
   if (store.user?.role === 'TEACHER') return [{ to: '/teach', title: 'Преподавание', icon: 'graduation' }]

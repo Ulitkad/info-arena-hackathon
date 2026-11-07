@@ -10,11 +10,11 @@ from ..config import get_settings
 from ..db import session_dep
 from ..models import (
     Event, EventGroup, EventParticipant, GroupSubject, Homework, HomeworkGroup,
-    Inventory, Progress, Reward, Subject, Submission, Upload, User, now,
+    Achievement, Inventory, Progress, Reward, Subject, Submission, Upload, User, UserAchievement, now,
 )
 from ..security import current_user, fail, require
 from ..services import (
-    award, complete_event, event_join, event_owner, notify, public_user, row,
+    achievement_progress, award, complete_event, event_join, event_owner, notify, public_user, row,
     student_access, validate_files, validate_load,
 )
 
@@ -73,7 +73,27 @@ async def battlepasses(user: User = Depends(current_user), db: AsyncSession = De
 @router.get("/inventory")
 async def inventory(user: User = Depends(current_user), db: AsyncSession = Depends(session_dep)):
     items = (await db.execute(select(Reward, Inventory).join(Inventory).where(Inventory.user_id == user.id).order_by(Inventory.unlocked_at.desc()))).all()
-    return [{**row(reward), "unlocked_at": item.unlocked_at} for reward, item in items]
+    return [{**row(reward), "unlocked_at": item.unlocked_at} for reward, item in items if reward.kind != "BADGE"]
+
+
+@router.get("/achievements")
+async def achievements(user: User = Depends(current_user), db: AsyncSession = Depends(session_dep)):
+    require(user, "STUDENT")
+    from ..services import evaluate_achievements
+    await evaluate_achievements(db, user)
+    subject_ids = select(GroupSubject.subject_id).where(GroupSubject.group_id == user.group_id)
+    definitions = (await db.scalars(select(Achievement).where(
+        Achievement.organization_id == user.organization_id,
+        (Achievement.subject_id.is_(None) | Achievement.subject_id.in_(subject_ids)),
+    ).order_by(Achievement.subject_id, Achievement.threshold, Achievement.id))).all()
+    unlocked_rows = (await db.scalars(select(UserAchievement).where(UserAchievement.user_id == user.id))).all()
+    unlocked_ids = {item.achievement_id for item in unlocked_rows}
+    unlocked_at = {item.achievement_id: item.unlocked_at for item in unlocked_rows}
+    result = []
+    for item in definitions:
+        progress = await achievement_progress(db, user, item)
+        result.append({**row(item), "unlocked": item.id in unlocked_ids, "unlocked_at": unlocked_at.get(item.id), "progress": progress})
+    return result
 
 
 @router.get("/homework")
@@ -129,6 +149,8 @@ async def submit_homework(hid: int, data: s.ContentInput, user: User = Depends(c
         submission = Submission(homework_id=hid, student_id=user.id)
         db.add(submission)
     submission.text, submission.files = data.text, data.files
+    if submission.status == "REVISION":
+        submission.revision_count += 1
     submission.status, submission.submitted_at = "SUBMITTED", now()
     await notify(db, item.teacher_id, "Работа на проверку", f"{user.display_name}: {item.title}", f"/teach?homework={hid}")
     await db.flush()
