@@ -131,15 +131,22 @@ const { store, route, router, tab, catalog, members, requests, invites, rewards,
       <article
         v-for="member in filteredMembers"
         :key="member.id"
-        class="member-row panel"
+        :class="['member-row', 'panel', { 'student-member': member.role === 'STUDENT' }]"
       >
         <Avatar :user="member" :size="40" />
         <div class="request-user">
           <strong>{{ member.display_name }}</strong
-          ><span>@{{ member.username || member.max_id }}</span>
+          ><span class="member-username">@{{ member.username || member.max_id }}</span
+          ><span
+            v-if="member.role === 'STUDENT' && member.group_id"
+            class="member-group"
+            >{{
+              catalog.groups.find((g) => g.id === member.group_id)?.name || "Группа"
+            }}</span
+          >
         </div>
         <span class="role-chip small-role">{{ roleName(member.role) }}</span
-        ><span v-if="member.group_id" class="member-group">{{
+        ><span v-if="member.group_id && member.role !== 'STUDENT'" class="member-group">{{
           catalog.groups.find((g) => g.id === member.group_id)?.name || "Группа"
         }}</span
         ><button

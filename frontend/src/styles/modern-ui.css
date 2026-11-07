@@ -987,4 +987,31 @@ h1, h2, h3 { color: var(--ink); letter-spacing: -.025em; }
   .catalog-row-main > strong { white-space: normal; overflow-wrap: anywhere; }
   .request-user > span, .request-user > small, .catalog-row-main > small,
   .linked-subjects, .manager-reward-name > small { white-space: normal; overflow-wrap: anywhere; }
+
+  /* Keep student cards compact: the group sits beside the username instead
+     of taking a separate row below the card. */
+  .member-row.student-member {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: .75rem;
+  }
+  .student-member > .request-user {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: .5rem;
+    row-gap: .15rem;
+  }
+  .student-member > .request-user > strong { grid-column: 1 / -1; }
+  .student-member > .request-user > .member-group {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+    margin-left: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .student-member > .role-chip { margin-left: 0; }
+  .student-member > .icon-btn { margin-left: 0; }
 }
