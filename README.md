@@ -19,6 +19,7 @@ The frontend uses Vue 3, Vite, Pinia, and Vue Router. The backend uses FastAPI, 
 The commands below assume Bash on a Debian-based Linux distribution and are run from the repository root.
 
 - Python 3.11 or newer
+- uv 0.9 or newer
 - Node.js 22.12 or newer, or Node.js 24 LTS
 - npm
 - Docker Engine and Docker Compose v2 for container deployment
@@ -27,7 +28,7 @@ On a minimal Debian or Ubuntu host, install the Python prerequisites with:
 
 ```bash
 sudo apt update
-sudo apt install -y python3 python3-venv python3-pip ca-certificates curl
+sudo apt install -y python3 ca-certificates curl
 ```
 
 Install a supported Node.js version using the method appropriate for your distribution. Verify the installed versions before continuing:
@@ -40,12 +41,11 @@ npm --version
 
 ## Local development without MAX
 
-Create a virtual environment and install the backend dependencies:
+Install the backend dependencies with `uv` (it creates and manages
+`backend/.venv` from `pyproject.toml` and `uv.lock`):
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install -r backend/requirements.txt
+uv sync --directory backend
 ```
 
 Create `backend/.env` with local settings. Do not use the Docker `/data` paths in this file.
@@ -62,15 +62,14 @@ SEED_DEMO=true
 Generate a suitable secret with:
 
 ```bash
-.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(48))'
+uv run --directory backend python -c 'import secrets; print(secrets.token_urlsafe(48))'
 ```
 
 Start the API in the first terminal:
 
 ```bash
-cd backend
-../.venv/bin/python -m alembic upgrade head
-../.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+uv run --directory backend alembic upgrade head
+uv run --directory backend uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 Start the frontend in a second terminal from the repository root:
@@ -147,7 +146,7 @@ The configuration file is resolved relative to the current working directory. Lo
 3. Start the API and frontend. For local development, start the bot separately from `backend`:
 
    ```bash
-   ../.venv/bin/python -m app.bot
+   uv run --directory backend python -m app.bot
    ```
 
    Compose starts the bot service automatically.
@@ -200,12 +199,11 @@ Official references: [Bridge](https://dev.max.ru/docs/webapps/bridge/), [validat
 
 ## Checks
 
-Run backend checks from `backend`:
+Run backend checks from the repository root:
 
 ```bash
-cd backend
-../.venv/bin/python -m pytest -q
-../.venv/bin/python -m ruff check app migrations tests
+PYTHONPATH=backend uv run --directory backend pytest -q
+uv run --directory backend ruff check app migrations tests
 ```
 
 Run frontend checks from `frontend`:

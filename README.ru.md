@@ -19,6 +19,7 @@ Frontend написан на Vue 3, Vite, Pinia и Vue Router. Backend испо�
 Команды ниже рассчитаны на Bash в Debian-based Linux и запускаются из корня репозитория.
 
 - Python 3.11 или новее
+- uv 0.9 или новее
 - Node.js 22.12 или новее, либо Node.js 24 LTS
 - npm
 - Docker Engine и плагин Docker Compose v2 для контейнерного развёртывания
@@ -27,7 +28,7 @@ Frontend написан на Vue 3, Vite, Pinia и Vue Router. Backend испо�
 
 ```bash
 sudo apt update
-sudo apt install -y python3 python3-venv python3-pip ca-certificates curl
+sudo apt install -y python3 ca-certificates curl
 ```
 
 Установите поддерживаемую версию Node.js подходящим для дистрибутива способом. Перед запуском проверьте версии:
@@ -40,12 +41,11 @@ npm --version
 
 ## Локальный запуск без MAX
 
-Создайте виртуальное окружение и установите зависимости backend:
+Установите зависимости backend через `uv` (он создаёт и управляет
+`backend/.venv` по `pyproject.toml` и `uv.lock`):
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install -r backend/requirements.txt
+uv sync --directory backend
 ```
 
 Создайте `backend/.env` с локальными параметрами. Не используйте в этом файле Docker-пути `/data`.
@@ -62,15 +62,14 @@ SEED_DEMO=true
 Сгенерировать подходящий секрет можно так:
 
 ```bash
-.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(48))'
+uv run --directory backend python -c 'import secrets; print(secrets.token_urlsafe(48))'
 ```
 
 Запустите API в первом терминале:
 
 ```bash
-cd backend
-../.venv/bin/python -m alembic upgrade head
-../.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+uv run --directory backend alembic upgrade head
+uv run --directory backend uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 Во втором терминале, начиная из корня репозитория, запустите frontend:
@@ -147,7 +146,7 @@ SQLite и загруженные файлы хранятся в именован
 3. Запустите API и frontend. При локальной разработке запустите бота отдельной командой из `backend`:
 
    ```bash
-   ../.venv/bin/python -m app.bot
+   uv run --directory backend python -m app.bot
    ```
 
    В Compose сервис бота запускается автоматически.
@@ -200,12 +199,11 @@ Frontend передаёт серверу необработанный `window.We
 
 ## Проверки
 
-Запустите проверки backend из каталога `backend`:
+Запустите проверки backend из корня репозитория:
 
 ```bash
-cd backend
-../.venv/bin/python -m pytest -q
-../.venv/bin/python -m ruff check app migrations tests
+PYTHONPATH=backend uv run --directory backend pytest -q
+uv run --directory backend ruff check app migrations tests
 ```
 
 Запустите проверки frontend из каталога `frontend`:

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .. import schemas as s
 from ..db import Session, session_dep
 from ..models import Notification, User
+from ..repositories import NotificationRepository
 from ..security import create_token, current_user, decode_token
 from ..services import row
 
@@ -15,11 +16,9 @@ router = APIRouter()
 
 @router.get("/api/notifications")
 async def notifications(before: int | None = None, user: User = Depends(current_user), db: AsyncSession = Depends(session_dep)):
-    query = select(Notification).where(Notification.user_id == user.id)
-    if before:
-        query = query.where(Notification.id < before)
-    items = (await db.scalars(query.order_by(Notification.id.desc()).limit(100))).all()
-    unread = await db.scalar(select(func.count()).select_from(Notification).where(Notification.user_id == user.id, Notification.read.is_(False)))
+    repository = NotificationRepository(db)
+    items = await repository.page(user.id, before)
+    unread = await repository.unread_count(user.id)
     return {"items": [row(item) for item in items], "unread": unread,
             "next_before": items[-1].id if len(items) == 100 else None}
 

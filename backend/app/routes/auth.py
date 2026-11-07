@@ -10,6 +10,7 @@ from .. import schemas as s
 from ..config import get_settings
 from ..db import session_dep
 from ..models import Group, Inventory, JoinRequest, Organization, Reward, User
+from ..repositories import UserRepository
 from ..security import create_token, current_user, fail, validate_init_data
 from ..services import accept_invite, public_user, row
 
@@ -31,7 +32,7 @@ async def auth_result(db, user):
 async def login(data: s.AuthInput, db: AsyncSession = Depends(session_dep)):
     validated = validate_init_data(data.init_data, settings.bot_token)
     profile = validated["user"]
-    user = await db.scalar(select(User).where(User.max_id == profile["id"]))
+    user = await UserRepository(db).by_max_id(profile["id"])
     name = profile.get("name") or " ".join(filter(None, [profile.get("first_name"), profile.get("last_name")])) or "Участник MAX"
     if not user:
         user = User(max_id=profile["id"], display_name=name[:160])
@@ -57,7 +58,7 @@ async def dev_login(data: s.DevAuth, db: AsyncSession = Depends(session_dep)):
     if not settings.dev_auth or not settings.seed_demo:
         fail("Демонстрационный вход отключен", 404)
     ids = {"student": 900001, "friend": 900002, "teacher": 900003, "manager": 900004, "admin": 900005}
-    user = await db.scalar(select(User).where(User.max_id == ids[data.persona]))
+    user = await UserRepository(db).by_max_id(ids[data.persona])
     if not user:
         fail("Демонстрационные данные не созданы", 409)
     return await auth_result(db, user)

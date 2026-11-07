@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700;750;800&family=Manrope:wght@400;500;600;650;700;750;800&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --color-ink: #182337;
+  --color-muted: #7c899b;
+  --color-blue: #357bea;
+  --color-sky: #33b8dc;
+  --color-green: #26a687;
+  --color-rose: #e78085;
+  --font-sans: 'DM Sans', sans-serif;
+}
+
+:root {
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --content-max: 67rem;
+  --content-gutter: clamp(var(--space-4), 4vw, var(--space-7));
+  --control-height: 2.75rem;
+  --control-height-small: 2.5rem;
+  --font-body: 0.9375rem;
+  --font-body-sm: 0.8125rem;
+  --font-caption: 0.75rem;
+  --leading-tight: 1.25;
+  --leading-body: 1.6;
+  --leading-relaxed: 1.7;
+}
+
