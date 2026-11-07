@@ -4,6 +4,7 @@ import { api, post, remove } from '../api'
 import { useArena } from '../stores/arena'
 import Icon from '../components/Icon.vue'
 import Modal from '../components/Modal.vue'
+import InviteQrModal from '../components/InviteQrModal.vue'
 import Avatar from '../components/Avatar.vue'
 
 const store = useArena(), organizations = ref([]), members = ref([]), modal = ref(''), name = ref(''), loading = ref(false), error = ref('')
@@ -102,11 +103,12 @@ async function copyInvite() {
       </form>
     </Modal>
     <Modal v-else-if="modal === 'invite-result'" title="Приглашение управляющего" @close="modal = ''">
-      <div class="modal-form">
-        <p>Учреждение: {{ inviteOrganization }}. Отправьте ссылку будущему управляющему. Она откроет доступ первому активировавшему её пользователю и больше не будет работать.</p>
-        <label class="field-label">Одноразовая ссылка<input :value="inviteUrl" readonly @focus="$event.target.select()" /></label>
-        <button class="btn primary" @click="copyInvite"><Icon name="link" :size="16" />Скопировать ссылку</button>
-      </div>
-    </Modal>
+       <div class="modal-form">
+         <p>Учреждение: {{ inviteOrganization }}. Отправьте ссылку будущему управляющему. Она откроет доступ первому активировавшему её пользователю и больше не будет работать.</p>
+         <label class="field-label">Одноразовая ссылка<input :value="inviteUrl" readonly @focus="$event.target.select()" /></label>
+         <div class="button-row wrap"><button class="btn primary" @click="copyInvite"><Icon name="link" :size="16" />Скопировать ссылку</button><button class="btn secondary" @click="modal = 'invite-qr'"><Icon name="qr-code" :size="16" />Показать QR-код</button></div>
+       </div>
+     </Modal>
+     <InviteQrModal v-else-if="modal === 'invite-qr'" title="QR-код приглашения управляющего" :url="inviteUrl" @close="modal = ''" />
   </section>
 </template>

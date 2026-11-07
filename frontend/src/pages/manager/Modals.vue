@@ -3,6 +3,7 @@ import { inject } from 'vue';
 import Modal from '../../components/Modal.vue';
 import Icon from '../../components/Icon.vue';
 import ColorPicker from '../../components/ColorPicker.vue';
+import InviteQrModal from '../../components/InviteQrModal.vue';
 const manager = inject('manager-page');
 const { store, route, router, tab, catalog, members, requests, invites, rewards, modal, loading, search, message, groupName, subjectName, subjectColor, inviteGroup, assign, editingTeacher, inviteRole, renameTarget, renameName, reward, editRewardId, organizations, inviteUrl, organizationId, filteredMembers, pendingByGroup, studentCount, load, chooseOrganization, perform, routeTab, createGroup, createSubject, saveLinks, toggleLink, invite, moderate, copyInvite, approveAll, openTeacher, saveTeacherLoads, deleteMember, deleteTeacher, saveReward, editReward, deleteReward, openRename, saveRename } = manager;
 </script>
@@ -111,7 +112,8 @@ const { store, route, router, tab, catalog, members, requests, invites, rewards,
       v-else-if="modal === 'invite-result'"
       title="Приглашение готово"
       @close="modal = ''"
-    ><div class="modal-form"><p>{{ inviteRole === 'STUDENT' ? 'Отправьте ссылку ученикам. Она многоразовая, вступление — после модерации.' : 'Отправьте ссылку преподавателю. Она одноразовая: первый активировавший её пользователь получит выбранную нагрузку, после чего ссылка перестанет работать.' }}</p><label class="field-label">Ссылка приглашения<input :value="inviteUrl" readonly @focus="$event.target.select()" /></label><button class="btn primary" @click="copyInvite">Скопировать ссылку</button></div></Modal>
+     ><div class="modal-form"><p>{{ inviteRole === 'STUDENT' ? 'Отправьте ссылку ученикам. Она многоразовая, вступление — после модерации.' : 'Отправьте ссылку преподавателю. Она одноразовая: первый активировавший её пользователь получит выбранную нагрузку, после чего ссылка перестанет работать.' }}</p><label class="field-label">Ссылка приглашения<input :value="inviteUrl" readonly @focus="$event.target.select()" /></label><div class="button-row wrap"><button class="btn primary" @click="copyInvite">Скопировать ссылку</button><button class="btn secondary" @click="modal = 'invite-qr'"><Icon name="qr-code" :size="16" />Показать QR-код</button></div></div></Modal>
+     <InviteQrModal v-else-if="modal === 'invite-qr'" :url="inviteUrl" @close="modal = ''" />
     <Modal
       v-else-if="modal === 'teacher'"
       :title="editingTeacher ? 'Учебная нагрузка' : 'Приглашение преподавателя'"
