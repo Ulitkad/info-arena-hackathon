@@ -5,7 +5,7 @@ import Modal from '../../components/Modal.vue';
 import Attachments from '../../components/Attachments.vue';
 import Avatar from '../../components/Avatar.vue';
 const teacher = inject('teacher-page');
-const { store, route, tab, catalog, modal, loading, reviews, participants, toast, hw, ev, canCreate, load, teachingGroups, forGroup, createHomework, createEvent, openReview, mark, openRoster, closeEvent, completeEvent, kick, fileLink } = teacher;
+const { store, route, tab, catalog, modal, loading, reviews, participants, toast, hw, ev, canCreate, load, teachingGroups, forGroup, createHomework, createEvent, openReview, mark, openRoster, closeEvent, completeEvent, kick, fileLink, formatDate } = teacher;
 </script>
 
 <template>

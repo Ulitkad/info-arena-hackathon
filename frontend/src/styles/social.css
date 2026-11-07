@@ -1,6 +1,6 @@
-.social-banner{min-height:102px;margin-bottom:16px;padding:16px 18px;display:flex;align-items:center;gap:13px;border:1px solid #e3eaf4;border-radius:11px;background:linear-gradient(110deg,#eff5ff,#f0fcff 65%,#f3f1ff)}
+.social-banner{min-height:102px;margin-bottom:16px;padding:16px 18px;display:flex;align-items:center;gap:13px;border:1px solid var(--ui-line-cdd4296875);border-radius:11px;background:linear-gradient(110deg,var(--ui-bg-f48ed8eaed),var(--ui-bg-c4f61a2103) 65%,var(--ui-bg-98f57bb506))}
 
-.social-banner>span{width:42px;height:42px;display:grid;place-items:center;flex:0 0 auto;border-radius:12px;background:#fff;color:#e48189;box-shadow:0 2px 8px rgba(67,99,140,.06)}
+.social-banner>span{width:42px;height:42px;display:grid;place-items:center;flex:0 0 auto;border-radius:12px;background:var(--ui-bg-b93a4da215);color:var(--ui-text-57a86f20a5);box-shadow:0 2px 8px var(--ui-shadow-aff3fa75ee)}
 
 .social-banner>div:nth-child(2){flex:1}
 
@@ -8,7 +8,7 @@
 
 .social-banner h2{margin:4px 0;font-size:16px}
 
-.social-banner p{margin:0;color:#7d8da1;font-size:10px}
+.social-banner p{margin:0;color:var(--ui-text-6c78d9e84b);font-size:10px}
 
 .social-counts{display:flex;gap:17px}
 
@@ -16,7 +16,7 @@
 
 .social-counts strong{font-size:17px}
 
-.social-counts small{color:#8794a4;font-size:9px}
+.social-counts small{color:var(--ui-text-9ad1172574);font-size:9px}
 
 .social-tabs{margin:0 0 13px}
 
@@ -34,29 +34,29 @@
 
 .friend-row strong{overflow:hidden;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
 
-.friend-row small{color:#8693a4;font-size:9px}
+.friend-row small{color:var(--ui-text-2a6fe0e869);font-size:9px}
 
 .notification-list{display:grid;gap:8px}
 
 .notification-row{width:100%;min-height:76px;padding:11px;display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
 
-.notification-row:hover{border-color:#ccdaed}
+.notification-row:hover{border-color:var(--ui-line-f0d6b9e89b)}
 
-.notification-row.unread{background:rgba(247,250,255,.96);border-color:#d7e5f8}
+.notification-row.unread{background:var(--ui-bg-c2b2e1180c);border-color:var(--ui-line-88b9790428)}
 
-.notification-kind{width:36px;height:36px;display:grid;place-items:center;flex:0 0 auto;border-radius:10px;background:#edf4ff;color:#5585ce}
+.notification-kind{width:36px;height:36px;display:grid;place-items:center;flex:0 0 auto;border-radius:10px;background:var(--ui-bg-09cb973a9a);color:var(--ui-text-f6b1aeec84)}
 
 .notification-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:4px}
 
 .notification-copy strong{font-size:11px}
 
-.notification-copy small{color:#7d899b;font-size:9px;line-height:1.5}
+.notification-copy small{color:var(--ui-text-3ce6f236ab);font-size:9px;line-height:1.5}
 
-.notification-copy time{color:#a0aab6;font-size:8px}
+.notification-copy time{color:var(--ui-text-99fe0b7922);font-size:8px}
 
 .notification-row>.unread-indicator{position:static;flex:0 0 auto;border:0}
 
-.notification-row>svg:last-child{flex:0 0 auto;color:#9da9b8}
+.notification-row>svg:last-child{flex:0 0 auto;color:var(--ui-text-2ce2ca2a63)}
 
 .social-banner{align-items:flex-start}
 
@@ -71,79 +71,3 @@
 .friend-row>a{min-width:10rem}
 
 .notification-row{min-height:4.75rem;padding:var(--space-4);gap:var(--space-3)}
-
-/* Final theme and mobile management overrides. This file is loaded after the
-   shared stylesheet, so these rules have the last word on these surfaces. */
-@media (prefers-color-scheme: dark){
-  .notification-row,
-  .notification-row.unread{
-    background:var(--surface);
-    border-color:#34465b;
-    color:var(--ink);
-  }
-  .notification-row:hover{background:#223144;border-color:#49617e}
-  .notification-kind{background:#263d5b;color:#8fb8f5}
-  .notification-copy small{color:#b0bfd1}
-  .notification-copy time{color:#8292a8}
-  .search-field{background:var(--surface);border-color:#34465b;color:#9aaac0}
-  .search-field>input{color:var(--ink)}
-}
-
-/* MAX Web can force the browser into dark mode while the original cards still
-   use their light-theme colors. Keep every content surface on the same dark
-   palette instead of relying on inherited colors alone. */
-@media (prefers-color-scheme: dark){
-  :root{color-scheme:dark}
-  .panel,.settings-preview,.select-card,.badge-option,.frame-choice,.mini-pass,
-  .duel-card,.empty-duels,.homework-card,.event-card,.social-banner,
-  .notification-row,.empty-page,.toast,.reward-content,.bp-cta{background:#1c2733;color:var(--ink);border-color:#34465b}
-  .showcase{background:rgba(24,34,45,.96);border-color:#34465b}
-  .showcase .section-label{color:#b8c6d8}
-  .deadline-card{background:linear-gradient(110deg,#2b2d32,#292b31);border-color:#4a4a50;box-shadow:0 3px 12px rgba(0,0,0,.16)}
-  .deadline-icon,.event-shortcut-icon{background:#3b3530;color:#e2ab78}
-  .deadline-card small{color:#d2a77e}
-  .deadline-card>span>span{color:#aab6c5}
-  .deadline-arrow{color:#c8a681}
-  .event-shortcut{background:#202d39;border-color:#3a4b5e}
-  .event-shortcut-icon{background:#263e58;color:#8dbcf2}
-  .event-shortcut strong{color:#e5edf8}
-  .event-shortcut small{color:#a7b4c4}
-  .event-shortcut>svg{color:#8ba1bb}
-  .player-banner,.public-profile-banner{background:linear-gradient(120deg,#24384d,#203747 55%,#263d43)}
-  .player-banner::after{background:linear-gradient(110deg,transparent,#ffffff08 55%,#8bb8d51c)}
-  .cloud-shape{background:#d9e9f218}
-  .player-identity>.avatar{border-color:#e5edf8}
-  .profile-divider,.ledger,.ledger>div,.event-bottom,.homework-top{background-color:transparent;border-color:#34465b}
-  .showcase .achievement-icon,.empty-achievement .achievement-icon{background:#263849;border-color:#40536a;color:#9abcf0}
-  .achievement-title{background:#463a2c;color:#e2b27a}
-  .achievement-frame{background:#263e5b;color:#91baf2}
-  .achievement-badge{background:#383653;color:#b1a9f3}
-  .empty-achievement strong,.achievement small{color:#a5b3c4}
-  .stat-icon.wins{background:#263e5b;color:#91baf2}
-  .stat-icon.awards{background:#383653;color:#b1a9f3}
-  .stat-icon.subjects{background:#23463e;color:#83d0b3}
-  .stat-icon.events-stat{background:#49382e;color:#e3b07d}
-  .select-card,.badge-option,.frame-choice{background:#1c2733;border-color:#34465b}
-  .select-card:hover,.badge-option:hover,.frame-choice:hover{border-color:#6286b4}
-  .select-card.selected,.badge-option.selected,.frame-choice.selected{background:#203654;border-color:#4c82c4;box-shadow:0 0 0 2px rgba(91,151,226,.16)}
-  .select-card strong,.badge-option strong,.frame-choice>span{color:#e5edf8}
-  .select-card small,.badge-option small{color:#a5b3c4}
-  .reward-art{background:#263849;border-color:#40536a;color:#a8bfe0}
-  .reward-art-title{background:#463a2c;color:#e2b27a}
-  .reward-art-frame{background:#263e5b;color:#91baf2}
-  .reward-art-badge{background:#383653;color:#b1a9f3}
-  .settings-preview>.text-btn{border-color:#34465b}
-  .bp-summary{background:linear-gradient(112deg,#1c2733,#1e3041 67%,#263d4a)}
-  .select-wrap{background:#1c2733;border-color:#34465b;color:#b3c2d4}
-  .select-wrap select{color:#dce7f4}
-  .reward-node{background:#1c2733;border-color:#46586d;color:#a5b3c4}
-  .node-current{background:#203654}
-  .bp-rail{background:linear-gradient(180deg,#426a96,#34465b 74%)}
-  .bp-cta-icon,.event-icon,.empty-duels-icon{background:#263e5b;color:#91baf2}
-  .event-icon.event-duty{background:#383653;color:#b1a9f3}
-  .arena-banner{background:#203342;border-color:#3b5064}
-  .arena-banner::after{background:linear-gradient(90deg,#203342 0%,#203342f7 39%,#20334299 63%,#20334208 100%)}
-  .homework-attachments>a,.file-chip>button:first-child{background:#202f40;border-color:#3b5068;color:#b5cae4}
-  .feedback{background:#3b3028;border-color:#a77950}
-  .feedback>p{color:#d3bca1}
-}

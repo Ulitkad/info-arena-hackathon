@@ -1,7 +1,13 @@
 @import './styles/tokens.css';
-@import './styles/primitives.css';
-@import './styles/pages-auth.css';
-@import './styles/components.css';
-@import './styles/pages.css';
-@import './styles/forms.css';
-@import './styles/responsive-overrides.css';
+@import './styles/theme-colors.css';
+/* Legacy selectors remain available to the existing Vue templates, but are
+   deliberately placed below the Tailwind theme so the new design system wins
+   without forcing a risky markup rewrite of every role page at once. */
+@import './styles/primitives.css' layer(legacy);
+@import './styles/pages-auth.css' layer(legacy);
+@import './styles/components.css' layer(legacy);
+@import './styles/pages.css' layer(legacy);
+@import './styles/forms.css' layer(legacy);
+@import './styles/responsive-overrides.css' layer(legacy);
+@import './layout.css' layer(legacy);
+@import './styles/modern-ui.css';

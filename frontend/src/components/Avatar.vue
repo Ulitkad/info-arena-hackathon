@@ -7,8 +7,8 @@ const initials = computed(() => (props.user?.display_name || '?').split(' ').sli
 const colors = ['#e0edff', '#e8e7ff', '#def5ee', '#ffeadf', '#e0f3ff']
 </script>
 <template>
-  <span class="avatar" :class="{ framed: framed || user?.active_frame_id }" :style="{ width: `${size}px`, height: `${size}px`, fontSize: `${size * .3}px`, background: colors[(user?.id || 0) % colors.length] }">
+  <span class="avatar" :class="{ framed: framed || user?.active_frame_id }" :style="{ width: `${size}px`, height: `${size}px`, fontSize: `${Math.max(14, size * .34)}px`, lineHeight: '1', background: colors[(user?.id || 0) % colors.length] }">
     <img v-if="user?.avatar_url && !broken" :src="user.avatar_url" :alt="user.display_name" referrerpolicy="no-referrer" @error="broken = true" />
-    <span v-else>{{ initials }}</span>
+    <span v-else class="avatar-initials">{{ initials }}</span>
   </span>
 </template>

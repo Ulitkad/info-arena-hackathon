@@ -2,6 +2,7 @@
 import { homeFor } from '../api'
 import Icon from './Icon.vue'
 import Avatar from './Avatar.vue'
+import { useTheme } from '../composables/useTheme'
 
 defineProps({
   user: { type: Object, required: true },
@@ -12,6 +13,7 @@ defineProps({
 })
 
 const emit = defineEmits(['toggle-notifications', 'logout'])
+const { theme, toggleTheme } = useTheme()
 </script>
 
 <template>
@@ -23,6 +25,9 @@ const emit = defineEmits(['toggle-notifications', 'logout'])
     <div class="topbar-right">
       <button class="icon-btn notification-button" aria-label="Уведомления" :aria-pressed="routePath === '/notifications'" @click="emit('toggle-notifications')">
         <Icon name="bell" /><span v-if="unread" class="notification-dot" aria-label="Непрочитанные уведомления"></span>
+      </button>
+      <button class="icon-btn theme-button" :aria-label="theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'" :title="theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'" @click="toggleTheme">
+        <Icon :name="theme === 'dark' ? 'sun' : 'moon'" />
       </button>
       <button v-if="config.dev_auth && !isMax" class="icon-btn" aria-label="Сменить демопользователя" title="Сменить демопользователя" @click="emit('logout')">
         <Icon name="logout" :size="18" />
