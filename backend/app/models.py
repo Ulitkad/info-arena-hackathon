@@ -32,6 +32,7 @@ class User(Base):
     group_id: Mapped[int | None] = mapped_column(ForeignKey("groups.id"), index=True)
     active_title_id: Mapped[int | None] = mapped_column(ForeignKey("rewards.id"))
     active_frame_id: Mapped[int | None] = mapped_column(ForeignKey("rewards.id"))
+    active_frame_style: Mapped[str | None] = mapped_column(String(30))
     showcase: Mapped[list] = mapped_column(JSON, default=list)
     duel_wins: Mapped[int] = mapped_column(default=0)
     created_at: Mapped[datetime] = mapped_column(default=now)
@@ -100,6 +101,7 @@ class Reward(Base):
     threshold: Mapped[int] = mapped_column(Integer)
     asset_url: Mapped[str | None] = mapped_column(Text)
     icon: Mapped[str] = mapped_column(String(30), default="award")
+    frame_style: Mapped[str | None] = mapped_column(String(30))
     special: Mapped[bool] = mapped_column(Boolean, default=False)
 
 

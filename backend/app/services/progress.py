@@ -3,6 +3,7 @@
 from sqlalchemy import select
 
 from ..models import GroupSubject, Inventory, PointLedger, Progress, Reward, User
+from ..frame_styles import DEFAULT_FRAME_STYLE
 from ..security import fail
 from .notifications import notify
 
@@ -21,14 +22,14 @@ async def init_progress(db, user):
 
 async def seed_rewards(db, organization_id, subject_id=None):
     definitions = [
-        ("Первый шаг", "BADGE", 1, "sparkles"), ("На старте", "TITLE", 5, "star"),
-        ("Небесная рамка", "FRAME", 10, "shield"), ("В потоке", "BADGE", 20, "flame"),
-        ("Исследователь", "TITLE", 35, "award"), ("Облачная рамка", "FRAME", 50, "sparkles"),
-        ("Выше облаков", "BADGE", 75, "crown"), ("Легенда арены", "TITLE", 100, "crown"),
+        ("Первый шаг", "BADGE", 1, "sparkles", None), ("На старте", "TITLE", 5, "star", None),
+        ("Небесная рамка", "FRAME", 10, "shield", "skyline"), ("В потоке", "BADGE", 20, "flame", None),
+        ("Исследователь", "TITLE", 35, "award", None), ("Облачная рамка", "FRAME", 50, "sparkles", "aurora"),
+        ("Выше облаков", "BADGE", 75, "crown", None), ("Легенда арены", "TITLE", 100, "crown", None),
     ]
-    for name, kind, threshold, icon in definitions:
+    for name, kind, threshold, icon, frame_style in definitions:
         db.add(Reward(organization_id=organization_id, subject_id=subject_id, name=name, kind=kind,
-                      threshold=threshold, icon=icon))
+                      threshold=threshold, icon=icon, frame_style=frame_style or (DEFAULT_FRAME_STYLE if kind == "FRAME" else None)))
     if subject_id is None:
         db.add(Reward(organization_id=organization_id, name="Дуэлянт", kind="BADGE", threshold=0,
                       icon="swords", special=True))

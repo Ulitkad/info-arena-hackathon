@@ -34,6 +34,7 @@ const reward = ref({
   subject_id: "",
   asset_url: null,
   icon: "award",
+  frame_style: null,
 });
 const editRewardId = ref(null);
 const selectedRewardScope = ref("general");
@@ -233,6 +234,7 @@ async function saveReward() {
     subject_id: "",
     asset_url: null,
     icon: "award",
+    frame_style: null,
   };
   editRewardId.value = null;
 }
@@ -246,6 +248,7 @@ function editReward(item) {
     subject_id: item.subject_id || "",
     asset_url: item.asset_url,
     icon: item.icon || "award",
+    frame_style: item.frame_style || (item.kind === "FRAME" ? "skyline" : null),
   };
   modal.value = "reward";
 }
@@ -258,6 +261,7 @@ function resetReward() {
     subject_id: selectedRewardScope.value === "general" ? "" : String(selectedRewardScope.value),
     asset_url: null,
     icon: "award",
+    frame_style: null,
   };
   modal.value = "reward";
 }

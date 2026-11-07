@@ -4,6 +4,7 @@ import Modal from '../../components/Modal.vue';
 import Icon from '../../components/Icon.vue';
 import ColorPicker from '../../components/ColorPicker.vue';
 import InviteQrModal from '../../components/InviteQrModal.vue';
+import { frameStyles } from '../../constants/frameStyles';
 const manager = inject('manager-page');
 const { store, route, router, tab, catalog, members, requests, invites, rewards, modal, loading, search, message, groupName, subjectName, subjectColor, inviteGroup, assign, editingTeacher, inviteRole, renameTarget, renameName, reward, editRewardId, organizations, inviteUrl, organizationId, filteredMembers, pendingByGroup, studentCount, load, chooseOrganization, perform, routeTab, createGroup, createSubject, saveLinks, toggleLink, invite, moderate, copyInvite, approveAll, openTeacher, saveTeacherLoads, deleteMember, deleteTeacher, saveReward, editReward, deleteReward, openRename, saveRename } = manager;
 </script>
@@ -162,16 +163,17 @@ const { store, route, router, tab, catalog, members, requests, invites, rewards,
       :title="editRewardId ? 'Изменить награду' : 'Новая награда'"
       @close="modal = ''"
       ><form class="modal-form" @submit.prevent="saveReward">
-        <label class="field-label"
+        <label v-if="reward.kind !== 'FRAME'" class="field-label"
           >Название<input
             v-model.trim="reward.name"
             maxlength="100"
             required
             placeholder="Например, Исследователь"
         /></label>
+        <div v-else class="field-label frame-style-field"><span>Стиль рамки</span><div class="frame-style-grid"><label v-for="style in frameStyles" :key="style.id" class="frame-style-option" :class="{ selected: reward.frame_style === style.id }"><input v-model="reward.frame_style" type="radio" :value="style.id" required @change="reward.name = style.name" /><span class="avatar frame-style-swatch" :class="`frame-${style.id}`"><Icon :name="style.icon" :size="18" /></span><span><strong>{{ style.name }}</strong><small>{{ style.description }}</small></span><Icon v-if="reward.frame_style === style.id" name="check" :size="14" class="selected-check" /></label></div></div>
         <div class="form-grid">
           <label class="field-label"
-            >Тип награды<select v-model="reward.kind">
+            >Тип награды<select v-model="reward.kind" @change="reward.frame_style = reward.kind === 'FRAME' ? (reward.frame_style || frameStyles[0].id) : null; reward.name = reward.kind === 'FRAME' ? (frameStyles.find(item => item.id === reward.frame_style)?.name || '') : reward.name">
               <option value="BADGE">Достижение</option>
               <option value="TITLE">Звание</option>
               <option value="FRAME">Рамка профиля</option>

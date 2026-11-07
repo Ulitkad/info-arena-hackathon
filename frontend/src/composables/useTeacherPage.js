@@ -35,7 +35,7 @@ const ev = ref({
   max_participants: 8,
   closes_at: futureLocal(2),
 });
-const reward = ref({ name: "", kind: "CUSTOM", threshold: 10, subject_id: "", asset_url: null, icon: "sparkles" });
+const reward = ref({ name: "", kind: "CUSTOM", threshold: 10, subject_id: "", asset_url: null, icon: "sparkles", frame_style: null });
 const editRewardId = ref(null);
 const canCreate = computed(() => catalog.value.loads?.length > 0);
 onMounted(load);
@@ -79,12 +79,12 @@ async function load() {
 }
 function resetReward() {
   editRewardId.value = null;
-  reward.value = { name: "", kind: "CUSTOM", threshold: 10, subject_id: selectedRewardSubject.value || "", asset_url: null, icon: "sparkles" };
+  reward.value = { name: "", kind: "CUSTOM", threshold: 10, subject_id: selectedRewardSubject.value || "", asset_url: null, icon: "sparkles", frame_style: null };
   modal.value = "reward";
 }
 function editReward(item) {
   editRewardId.value = item.id;
-  reward.value = { name: item.name, kind: item.kind, threshold: item.threshold, subject_id: item.subject_id, asset_url: item.asset_url, icon: item.icon || "sparkles" };
+  reward.value = { name: item.name, kind: item.kind, threshold: item.threshold, subject_id: item.subject_id, asset_url: item.asset_url, icon: item.icon || "sparkles", frame_style: item.frame_style || (item.kind === "FRAME" ? "skyline" : null) };
   selectedRewardSubject.value = item.subject_id;
   modal.value = "reward";
 }

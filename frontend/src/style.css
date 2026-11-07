@@ -16,3 +16,28 @@
 .qr-modal-content>p{margin:0;color:var(--muted);font-size:var(--font-body-sm);line-height:var(--leading-body)}
 .invite-qr{width:min(100%,260px);height:auto;padding:var(--space-3);border-radius:var(--radius-md);background:#fff;box-shadow:0 8px 24px rgb(0 0 0 / 12%)}
 .qr-url{max-width:100%;overflow-wrap:anywhere;color:var(--muted);font-size:var(--font-caption);line-height:var(--leading-body)}
+
+/* Profile frames are reward cosmetics, so each preset has its own readable
+   silhouette rather than being a renamed copy of the default outline. */
+.avatar.framed { position: relative; }
+.avatar.frame-skyline { outline: 2px solid #38bdf8; outline-offset: 3px; box-shadow: 0 0 0 5px color-mix(in srgb, #38bdf8 18%, transparent), 0 4px 12px rgb(14 165 233 / 28%); }
+.avatar.frame-aurora { outline: 2px solid #a78bfa; outline-offset: 3px; box-shadow: 0 0 0 5px rgb(45 212 191 / 24%), 0 0 18px rgb(167 139 250 / 62%); }
+.avatar.frame-sunset { outline: 3px solid #fb7185; outline-offset: 3px; box-shadow: 0 0 0 5px rgb(251 146 60 / 25%), 0 4px 14px rgb(244 63 94 / 32%); }
+.avatar.frame-mint { outline: 2px solid #34d399; outline-offset: 4px; box-shadow: 0 0 0 6px rgb(45 212 191 / 18%), 0 0 15px rgb(52 211 153 / 52%); }
+.avatar.frame-lavender { outline: 3px double #c084fc; outline-offset: 3px; box-shadow: 0 0 0 5px rgb(192 132 252 / 20%), 0 5px 14px rgb(139 92 246 / 30%); }
+.avatar.frame-flame { outline: 3px solid #f97316; outline-offset: 3px; box-shadow: 0 0 0 5px rgb(250 204 21 / 24%), 0 0 16px rgb(249 115 22 / 62%); }
+.avatar.frame-ocean { outline: 3px solid #14b8a6; outline-offset: 4px; box-shadow: 0 0 0 6px rgb(14 165 233 / 20%), 0 5px 14px rgb(20 184 166 / 34%); }
+.avatar.frame-orbit { outline: 2px solid #60a5fa; outline-offset: 3px; box-shadow: 0 0 0 5px rgb(96 165 250 / 20%), 0 0 0 8px rgb(196 181 253 / 20%), 0 4px 13px rgb(59 130 246 / 32%); }
+.avatar.frame-pixel { outline: 3px dotted #facc15; outline-offset: 3px; box-shadow: 0 0 0 5px rgb(234 179 8 / 18%), 0 4px 11px rgb(161 98 7 / 28%); }
+.avatar.frame-constellation { outline: 2px dashed #818cf8; outline-offset: 4px; box-shadow: 0 0 0 6px rgb(129 140 248 / 20%), 0 0 14px rgb(99 102 241 / 48%); }
+.frame-style-field > span:first-child { display: block; margin-bottom: 8px; }
+.frame-style-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.frame-style-option { position: relative; display: flex; align-items: center; gap: 9px; min-height: 58px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); cursor: pointer; }
+.frame-style-option:hover, .frame-style-option.selected { border-color: var(--line-info); background: var(--surface-info); }
+.frame-style-option input { position: absolute; opacity: 0; }
+.frame-style-option > span:nth-of-type(2) { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.frame-style-option strong { overflow-wrap: anywhere; font-size: 10px; }
+.frame-style-option small { color: var(--muted); font-size: 8px; line-height: 1.2; }
+.frame-style-swatch { width: 34px !important; height: 34px !important; flex: 0 0 auto; color: var(--ink-info); background: var(--surface-raised) !important; font-size: 10px !important; }
+.frame-style-option .selected-check { margin-left: auto; flex: 0 0 auto; color: var(--blue); }
+@media (max-width: 560px) { .frame-style-grid { grid-template-columns: 1fr; } }

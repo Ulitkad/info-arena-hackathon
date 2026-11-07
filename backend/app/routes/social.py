@@ -43,7 +43,8 @@ async def user_profile(uid: int, user: User = Depends(current_user), db: AsyncSe
     friendship = await db.scalar(select(Friendship).where(Friendship.low_id == low, Friendship.high_id == high))
     my_subjects = (await db.scalars(select(GroupSubject.subject_id).where(GroupSubject.group_id == user.group_id))).all()
     their_subjects = (await db.scalars(select(GroupSubject.subject_id).where(GroupSubject.group_id == target.group_id))).all()
-    return {**public_user(target), "rewards": [row(item) for item in rewards],
+    return {**public_user(target), "active_frame_style": target.active_frame_style,
+            "rewards": [row(item) for item in rewards],
             "friendship": row(friendship) if friendship else None, "common_subject_ids": sorted(set(my_subjects) & set(their_subjects))}
 
 

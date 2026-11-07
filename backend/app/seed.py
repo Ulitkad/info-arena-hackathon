@@ -95,6 +95,7 @@ async def seed_demo(db):
     badges = (await db.scalars(select(Reward).join(Inventory).where(Inventory.user_id == student.id, Reward.kind == "BADGE"))).all()
     student.active_title_id = titles[0].id if titles else None
     student.active_frame_id = frames[0].id if frames else None
+    student.active_frame_style = frames[0].frame_style if frames else None
     student.showcase = [r.id for r in badges[:3]]
     await notify(db, student.id, "Твоя арена готова", "Учись, открывай награды и бросай вызов друзьям!", "/")
     await notify(db, student.id, "Новое задание", "Алгоритмы вокруг нас · +1 балл", "/arena")

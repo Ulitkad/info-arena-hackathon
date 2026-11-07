@@ -8,6 +8,7 @@ from ..models import (
     Duel, Event, EventGroup, EventParticipant, Group, GroupSubject, Homework, HomeworkGroup,
     Inventory, Invite, JoinRequest, Organization, Reward, Subject, TeacherLoad, User,
 )
+from ..frame_styles import DEFAULT_FRAME_STYLE
 from ..security import current_user, fail, require, scope
 from ..services import (
     activate_student, create_invite, find_user, init_progress, notify, public_user, row,
@@ -349,6 +350,10 @@ async def rewards(oid: int, user: User = Depends(current_user), db: AsyncSession
 
 
 async def validate_reward(db, user, oid, data):
+    if data.kind == "FRAME":
+        data.frame_style = data.frame_style or DEFAULT_FRAME_STYLE
+    elif data.frame_style is not None:
+        fail("Стиль рамки можно выбрать только для награды-рамки", 422)
     if data.subject_id:
         subject = await db.get(Subject, data.subject_id)
         if not subject or subject.organization_id != oid:

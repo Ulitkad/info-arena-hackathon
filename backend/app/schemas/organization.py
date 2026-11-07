@@ -55,3 +55,4 @@ class RewardInput(Input):
     subject_id: int | None = None
     asset_url: str | None = Field(default=None, max_length=200)
     icon: Literal["award", "sparkles", "crown", "flame", "swords", "star", "shield"] = "award"
+    frame_style: Literal["skyline", "aurora", "sunset", "mint", "lavender", "flame", "ocean", "orbit", "pixel", "constellation"] | None = None

@@ -25,7 +25,9 @@ async def config():
 
 async def auth_result(db, user):
     await db.flush()
-    return {"access_token": create_token(user.id), "user": public_user(user)}
+    result = public_user(user)
+    result["active_frame_style"] = user.active_frame_style
+    return {"access_token": create_token(user.id), "user": result}
 
 
 @router.post("/auth/max")
@@ -69,7 +71,8 @@ async def me(user: User = Depends(current_user), db: AsyncSession = Depends(sess
     organization = await db.get(Organization, user.organization_id) if user.organization_id else None
     group = await db.get(Group, user.group_id) if user.group_id else None
     pending = await db.scalar(select(JoinRequest).where(JoinRequest.student_id == user.id).order_by(JoinRequest.id.desc()))
-    return {**public_user(user), "organization": row(organization) if organization else None,
+    return {**public_user(user), "active_frame_style": user.active_frame_style,
+            "organization": row(organization) if organization else None,
             "group": row(group) if group else None, "join_request": row(pending) if pending else None}
 
 
@@ -92,7 +95,8 @@ async def customize(data: s.ProfileInput, user: User = Depends(current_user), db
         fail("Выберите разные достижения")
     for rid in data.showcase:
         await owned(rid, "BADGE")
-    user.active_title_id, user.active_frame_id, user.showcase = data.active_title_id, data.active_frame_id, data.showcase
+    frame = await db.get(Reward, data.active_frame_id) if data.active_frame_id else None
+    user.active_title_id, user.active_frame_id, user.active_frame_style, user.showcase = data.active_title_id, data.active_frame_id, frame.frame_style if frame else None, data.showcase
     return {"ok": True}
 
 

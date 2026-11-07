@@ -4,6 +4,7 @@ import Modal from '../../components/Modal.vue';
 import Icon from '../../components/Icon.vue';
 import Attachments from '../../components/Attachments.vue';
 import Avatar from '../../components/Avatar.vue';
+import { frameStyles } from '../../constants/frameStyles';
 const teacher = inject('teacher-page');
 const { store, route, tab, catalog, rewards, selectedRewardSubject, reward, editRewardId, modal, loading, reviews, participants, toast, hw, ev, canCreate, load, teachingGroups, forGroup, createHomework, createEvent, openReview, mark, openRoster, closeEvent, completeEvent, kick, fileLink, formatDate, saveReward } = teacher;
 </script>
@@ -293,9 +294,10 @@ const { store, route, tab, catalog, rewards, selectedRewardSubject, reward, edit
       @close="modal = ''"
     ><form class="modal-form" @submit.prevent="saveReward">
       <p class="muted">Награда будет добавлена в предметный пропуск «{{ catalog.subjects.find(s => s.id === selectedRewardSubject)?.name }}».</p>
-      <label class="field-label">Текст награды<input v-model.trim="reward.name" maxlength="100" required placeholder="Например, +1 балл к худшей контрольной в семестре" /></label>
+       <label v-if="reward.kind !== 'FRAME'" class="field-label">Текст награды<input v-model.trim="reward.name" maxlength="100" required placeholder="Например, +1 балл к худшей контрольной в семестре" /></label>
+       <div v-else class="field-label frame-style-field"><span>Стиль рамки</span><div class="frame-style-grid"><label v-for="style in frameStyles" :key="style.id" class="frame-style-option" :class="{ selected: reward.frame_style === style.id }"><input v-model="reward.frame_style" type="radio" :value="style.id" required @change="reward.name = style.name" /><span class="avatar frame-style-swatch" :class="`frame-${style.id}`"><Icon :name="style.icon" :size="18" /></span><span><strong>{{ style.name }}</strong><small>{{ style.description }}</small></span><Icon v-if="reward.frame_style === style.id" name="check" :size="14" class="selected-check" /></label></div></div>
       <div class="form-grid">
-        <label class="field-label">Тип награды<select v-model="reward.kind"><option value="CUSTOM">Своя награда</option><option value="BADGE">Достижение</option><option value="TITLE">Звание</option><option value="FRAME">Рамка профиля</option></select></label>
+         <label class="field-label">Тип награды<select v-model="reward.kind" @change="reward.frame_style = reward.kind === 'FRAME' ? (reward.frame_style || frameStyles[0].id) : null; reward.name = reward.kind === 'FRAME' ? (frameStyles.find(item => item.id === reward.frame_style)?.name || '') : reward.name"><option value="CUSTOM">Своя награда</option><option value="BADGE">Достижение</option><option value="TITLE">Звание</option><option value="FRAME">Рамка профиля</option></select></label>
         <label class="field-label">Нужно баллов<input v-model.number="reward.threshold" type="number" min="1" max="100000" required /></label>
       </div>
       <label class="field-label">Символ<select v-model="reward.icon"><option v-for="name in ['sparkles', 'award', 'crown', 'flame', 'star', 'shield']" :key="name" :value="name">{{ name }}</option></select></label>

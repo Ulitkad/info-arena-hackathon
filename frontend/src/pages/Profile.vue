@@ -56,7 +56,7 @@ async function challenge() {
         <span class="banner-caption"><Icon name="sparkles" :size="14" /> УЧАСТНИК АРЕНЫ</span>
       </div>
       <div class="public-profile-content">
-        <Avatar :user="{ ...profile, active_frame_id: frame?.id }" :size="96" :framed="Boolean(frame)" />
+        <Avatar :user="{ ...profile, active_frame_id: frame?.id, active_frame_style: frame?.frame_style }" :size="96" :framed="Boolean(frame)" />
         <h2>{{ profile.display_name }}</h2>
         <p>@{{ profile.username || 'участник арены' }}</p>
         <span v-if="title" class="public-title"><Icon name="crown" :size="15" />{{ title.name }}</span>
