@@ -175,6 +175,7 @@ const { store, route, router, tab, catalog, members, requests, invites, rewards,
               <option value="BADGE">Достижение</option>
               <option value="TITLE">Звание</option>
               <option value="FRAME">Рамка профиля</option>
+              <option value="CUSTOM">Своя награда</option>
             </select></label
           ><label class="field-label"
             >Нужно баллов<input
@@ -185,18 +186,7 @@ const { store, route, router, tab, catalog, members, requests, invites, rewards,
               required
           /></label>
         </div>
-        <label class="field-label"
-          >Боевой пропуск<select v-model="reward.subject_id">
-            <option value="">Общий пропуск</option>
-            <option
-              v-for="subject in catalog.subjects"
-              :key="subject.id"
-              :value="String(subject.id)"
-            >
-              {{ subject.name }}
-            </option>
-          </select></label
-        ><label class="field-label"
+         <p class="muted">Уровень будет добавлен в выбранный боевой пропуск.</p><label class="field-label"
           >Символ<select v-model="reward.icon">
             <option
               v-for="name in [

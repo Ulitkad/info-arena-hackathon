@@ -96,6 +96,18 @@
 
 .reward-scope{margin:18px 0 25px}
 
+.battlepass-tabs{display:flex;gap:8px;margin:18px 0 4px;overflow-x:auto;scrollbar-width:none}
+
+.battlepass-tabs::-webkit-scrollbar{display:none}
+
+.battlepass-tabs>button{min-height:37px;padding:0 12px;display:flex;align-items:center;gap:7px;flex:0 0 auto;border:1px solid var(--ui-line-724a31a99b);border-radius:9px;background:var(--ui-bg-b790a4f8f0);color:var(--ui-text-149a4e3cb7);font-size:10px;font-weight:650;cursor:pointer}
+
+.battlepass-tabs>button.active{border-color:var(--ui-line-d84860cd8d);background:var(--ui-bg-b7077940cc);color:var(--ui-text-2a53366406)}
+
+.battlepass-tabs .pass-color{width:9px;height:9px;display:inline-block;border-radius:50%}
+
+.reward-subject-picker{max-width:360px;margin:16px 0}
+
 .manager-reward-row{min-height:61px;margin-bottom:8px;padding:8px 10px;display:flex;align-items:center;gap:10px}
 
 .manager-reward-row>.reward-art{width:38px;height:38px}

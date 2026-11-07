@@ -5,7 +5,7 @@ import Icon from '../../components/Icon.vue';
 import Attachments from '../../components/Attachments.vue';
 import Avatar from '../../components/Avatar.vue';
 const teacher = inject('teacher-page');
-const { store, route, tab, catalog, modal, loading, reviews, participants, toast, hw, ev, canCreate, load, teachingGroups, forGroup, createHomework, createEvent, openReview, mark, openRoster, closeEvent, completeEvent, kick, fileLink, formatDate } = teacher;
+const { store, route, tab, catalog, rewards, selectedRewardSubject, reward, editRewardId, modal, loading, reviews, participants, toast, hw, ev, canCreate, load, teachingGroups, forGroup, createHomework, createEvent, openReview, mark, openRoster, closeEvent, completeEvent, kick, fileLink, formatDate, saveReward } = teacher;
 </script>
 
 <template>
@@ -287,4 +287,18 @@ const { store, route, tab, catalog, modal, loading, reviews, participants, toast
         </div>
       </div></Modal
     >
+    <Modal
+      v-else-if="modal === 'reward'"
+      :title="editRewardId ? 'Изменить награду' : 'Новый уровень'"
+      @close="modal = ''"
+    ><form class="modal-form" @submit.prevent="saveReward">
+      <p class="muted">Награда будет добавлена в предметный пропуск «{{ catalog.subjects.find(s => s.id === selectedRewardSubject)?.name }}».</p>
+      <label class="field-label">Текст награды<input v-model.trim="reward.name" maxlength="100" required placeholder="Например, +1 балл к худшей контрольной в семестре" /></label>
+      <div class="form-grid">
+        <label class="field-label">Тип награды<select v-model="reward.kind"><option value="CUSTOM">Своя награда</option><option value="BADGE">Достижение</option><option value="TITLE">Звание</option><option value="FRAME">Рамка профиля</option></select></label>
+        <label class="field-label">Нужно баллов<input v-model.number="reward.threshold" type="number" min="1" max="100000" required /></label>
+      </div>
+      <label class="field-label">Символ<select v-model="reward.icon"><option v-for="name in ['sparkles', 'award', 'crown', 'flame', 'star', 'shield']" :key="name" :value="name">{{ name }}</option></select></label>
+      <button class="btn primary modal-submit" :disabled="store.saving || !selectedRewardSubject">{{ editRewardId ? 'Сохранить' : 'Создать уровень' }} <Icon name="check" :size="15" /></button>
+    </form></Modal>
 </template>

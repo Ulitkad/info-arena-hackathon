@@ -339,8 +339,13 @@ async def approve_all(gid: int, user: User = Depends(current_user), db: AsyncSes
 
 @router.get("/organizations/{oid}/rewards")
 async def rewards(oid: int, user: User = Depends(current_user), db: AsyncSession = Depends(session_dep)):
+    require(user, "ADMIN", "MANAGER", "TEACHER")
     scope(user, oid)
-    return [row(item) for item in (await db.scalars(select(Reward).where(Reward.organization_id == oid).order_by(Reward.threshold))).all()]
+    query = select(Reward).where(Reward.organization_id == oid)
+    if user.role == "TEACHER":
+        subject_ids = select(TeacherLoad.subject_id).where(TeacherLoad.teacher_id == user.id)
+        query = query.where(Reward.subject_id.in_(subject_ids))
+    return [row(item) for item in (await db.scalars(query.order_by(Reward.threshold, Reward.id))).all()]
 
 
 async def validate_reward(db, user, oid, data):
@@ -348,13 +353,28 @@ async def validate_reward(db, user, oid, data):
         subject = await db.get(Subject, data.subject_id)
         if not subject or subject.organization_id != oid:
             fail("Предмет не найден", 404)
+        if user.role == "TEACHER" and not await db.scalar(select(TeacherLoad.teacher_id).where(
+            TeacherLoad.teacher_id == user.id, TeacherLoad.subject_id == data.subject_id,
+        )):
+            fail("Предмет не входит в вашу нагрузку", 403)
+    elif user.role == "TEACHER":
+        fail("Преподаватель может редактировать только предметный пропуск", 403)
     if data.asset_url:
         await validate_files(db, user, [data.asset_url])
 
 
+async def manageable_reward(db, user, oid):
+    require(user, "ADMIN", "MANAGER", "TEACHER")
+    scope(user, oid)
+    organization = await db.get(Organization, oid)
+    if not organization:
+        fail("Учреждение не найдено", 404)
+    return organization
+
+
 @router.post("/organizations/{oid}/rewards", status_code=201)
 async def create_reward(oid: int, data: s.RewardInput, user: User = Depends(current_user), db: AsyncSession = Depends(session_dep)):
-    await manageable(db, user, oid)
+    await manageable_reward(db, user, oid)
     await validate_reward(db, user, oid, data)
     reward = Reward(organization_id=oid, **data.model_dump())
     db.add(reward)
@@ -369,9 +389,13 @@ async def update_reward(rid: int, data: s.RewardInput, user: User = Depends(curr
     reward = await db.get(Reward, rid)
     if not reward:
         fail("Награда не найдена", 404)
-    await manageable(db, user, reward.organization_id)
+    await manageable_reward(db, user, reward.organization_id)
     if reward.special:
         fail("Системная награда дуэли не редактируется", 409)
+    if user.role == "TEACHER" and not await db.scalar(select(TeacherLoad.teacher_id).where(
+        TeacherLoad.teacher_id == user.id, TeacherLoad.subject_id == reward.subject_id,
+    )):
+        fail("Награда не входит в ваши предметы", 403)
     await validate_reward(db, user, reward.organization_id, data)
     if reward.kind != data.kind or reward.subject_id != data.subject_id:
         if await db.scalar(select(Inventory.user_id).where(Inventory.reward_id == rid).limit(1)):
@@ -389,7 +413,12 @@ async def delete_reward(rid: int, user: User = Depends(current_user), db: AsyncS
     reward = await db.get(Reward, rid)
     if not reward:
         fail("Награда не найдена", 404)
-    await manageable(db, user, reward.organization_id)
+    await manageable_reward(db, user, reward.organization_id)
+    if user.role == "TEACHER":
+        await validate_reward(db, user, reward.organization_id, s.RewardInput(
+            name=reward.name, kind=reward.kind, threshold=reward.threshold,
+            subject_id=reward.subject_id, asset_url=reward.asset_url, icon=reward.icon,
+        ))
     if reward.special or await db.scalar(select(Inventory.user_id).where(Inventory.reward_id == rid).limit(1)):
         fail("Нельзя удалить системную или уже выданную награду", 409)
     await db.delete(reward)

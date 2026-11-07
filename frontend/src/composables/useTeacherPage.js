@@ -1,13 +1,15 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { api, formatDate, futureLocal, iso, post } from '../api';
+import { api, formatDate, futureLocal, iso, post, put, remove } from '../api';
 import { useArena } from '../stores/arena';
 
 export function useTeacherPage() {
   const store = useArena(),
   route = useRoute(),
   tab = ref("homework"),
-  catalog = ref({ groups: [], subjects: [], loads: [] });
+  catalog = ref({ groups: [], subjects: [], loads: [] }),
+  rewards = ref([]),
+  selectedRewardSubject = ref(null);
 const modal = ref(""),
   loading = ref(false),
   reviews = ref([]),
@@ -33,6 +35,8 @@ const ev = ref({
   max_participants: 8,
   closes_at: futureLocal(2),
 });
+const reward = ref({ name: "", kind: "CUSTOM", threshold: 10, subject_id: "", asset_url: null, icon: "sparkles" });
+const editRewardId = ref(null);
 const canCreate = computed(() => catalog.value.loads?.length > 0);
 onMounted(load);
 watch(
@@ -46,14 +50,18 @@ watch(() => store.revision, load);
 async function load() {
   loading.value = true;
   try {
-    const [catalogData, homeworkData, eventsData] = await Promise.all([
+    const [catalogData, homeworkData, eventsData, rewardsData] = await Promise.all([
       api(`/organizations/${store.user.organization_id}/catalog`),
       api("/homework"),
       api("/events"),
+      api(`/organizations/${store.user.organization_id}/rewards`),
     ]);
     catalog.value = catalogData;
     store.homework = homeworkData;
     store.events = eventsData;
+    rewards.value = rewardsData;
+    if (!selectedRewardSubject.value || !catalogData.subjects.some(s => s.id === selectedRewardSubject.value))
+      selectedRewardSubject.value = catalogData.subjects[0]?.id || null;
     const first = catalogData.loads?.[0];
     if (first && !hw.value.subject_id)
       hw.value.subject_id = String(first.subject_id);
@@ -68,6 +76,30 @@ async function load() {
   } finally {
     loading.value = false;
   }
+}
+function resetReward() {
+  editRewardId.value = null;
+  reward.value = { name: "", kind: "CUSTOM", threshold: 10, subject_id: selectedRewardSubject.value || "", asset_url: null, icon: "sparkles" };
+  modal.value = "reward";
+}
+function editReward(item) {
+  editRewardId.value = item.id;
+  reward.value = { name: item.name, kind: item.kind, threshold: item.threshold, subject_id: item.subject_id, asset_url: item.asset_url, icon: item.icon || "sparkles" };
+  selectedRewardSubject.value = item.subject_id;
+  modal.value = "reward";
+}
+async function saveReward() {
+  await store.run(async () => {
+    const body = { ...reward.value, threshold: Number(reward.value.threshold), subject_id: Number(selectedRewardSubject.value) };
+    if (editRewardId.value) await put(`/rewards/${editRewardId.value}`, body);
+    else await post(`/organizations/${store.user.organization_id}/rewards`, body);
+    modal.value = "";
+    await load();
+  }, editRewardId.value ? "Награда обновлена" : "Награда добавлена");
+}
+async function deleteReward(item) {
+  if (!confirm(`Удалить награду «${item.name}»?`)) return;
+  await store.run(async () => { await remove(`/rewards/${item.id}`); await load(); }, "Награда удалена");
 }
 const teachingGroups = computed(() =>
   [
@@ -173,5 +205,5 @@ async function kick(item) {
 function fileLink(url) {
   return `${location.origin}${url}`;
 }
-  return {store, route, tab, catalog, modal, loading, reviews, participants, toast, hw, ev, canCreate, load, teachingGroups, forGroup, createHomework, createEvent, openReview, mark, openRoster, closeEvent, completeEvent, kick, fileLink, formatDate};
+  return {store, route, tab, catalog, rewards, selectedRewardSubject, reward, editRewardId, modal, loading, reviews, participants, toast, hw, ev, canCreate, load, teachingGroups, forGroup, createHomework, createEvent, openReview, mark, openRoster, closeEvent, completeEvent, kick, fileLink, formatDate, resetReward, editReward, saveReward, deleteReward};
 }

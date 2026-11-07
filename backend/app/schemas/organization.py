@@ -50,7 +50,7 @@ class Moderation(Input):
 
 class RewardInput(Input):
     name: str = Field(min_length=1, max_length=100)
-    kind: Literal["TITLE", "FRAME", "BADGE"]
+    kind: Literal["TITLE", "FRAME", "BADGE", "CUSTOM"]
     threshold: int = Field(ge=1, le=100000)
     subject_id: int | None = None
     asset_url: str | None = Field(default=None, max_length=200)

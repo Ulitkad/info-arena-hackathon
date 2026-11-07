@@ -2,7 +2,7 @@
 import { inject } from 'vue';
 import Icon from '../../components/Icon.vue';
 const manager = inject('manager-page');
-const { store, route, router, tab, catalog, members, requests, invites, rewards, modal, loading, search, message, groupName, subjectName, subjectColor, inviteGroup, assign, editingTeacher, inviteRole, renameTarget, renameName, reward, editRewardId, organizations, inviteUrl, organizationId, filteredMembers, pendingByGroup, studentCount, load, chooseOrganization, perform, routeTab, createGroup, createSubject, saveLinks, toggleLink, invite, moderate, copyInvite, approveAll, openTeacher, saveTeacherLoads, deleteMember, deleteTeacher, saveReward, editReward, deleteReward, openRename, saveRename } = manager;
+  const { store, route, router, tab, catalog, members, requests, invites, rewards, modal, loading, search, message, groupName, subjectName, subjectColor, inviteGroup, assign, editingTeacher, inviteRole, renameTarget, renameName, reward, editRewardId, selectedRewardScope, organizations, inviteUrl, organizationId, filteredMembers, pendingByGroup, studentCount, load, chooseOrganization, perform, routeTab, createGroup, createSubject, saveLinks, toggleLink, invite, moderate, copyInvite, approveAll, openTeacher, saveTeacherLoads, deleteMember, deleteTeacher, saveReward, resetReward, editReward, deleteReward, openRename, saveRename } = manager;
 </script>
 
 <template>
@@ -14,42 +14,28 @@ const { store, route, router, tab, catalog, members, requests, invites, rewards,
         </div>
         <button
           class="btn primary"
-          @click="
-            editRewardId = null;
-            reward = {
-              name: '',
-              kind: 'BADGE',
-              threshold: 10,
-              subject_id: '',
-              asset_url: null,
-              icon: 'award',
-            };
-            modal = 'reward';
-          "
+           @click="resetReward"
         >
           <Icon name="plus" :size="16" />Добавить уровень
         </button>
       </div>
-      <div
-        v-for="scope in [
-          { subject_id: null, name: 'Общий боевой пропуск' },
-          ...catalog.subjects.map((s) => ({ subject_id: s.id, name: s.name })),
-        ]"
-        :key="scope.subject_id || 'general'"
-        class="reward-scope"
-      >
+      <div class="battlepass-tabs" role="tablist" aria-label="Боевые пропуски">
+        <button type="button" :class="{ active: selectedRewardScope === 'general' }" @click="selectedRewardScope = 'general'"><Icon name="layers" :size="15" /> Общий пропуск</button>
+        <button v-for="subject in catalog.subjects" :key="subject.id" type="button" :class="{ active: selectedRewardScope === subject.id }" @click="selectedRewardScope = subject.id"><span class="pass-color" :style="{ background: subject.color }"></span>{{ subject.name }}</button>
+      </div>
+      <div class="reward-scope">
         <div class="catalog-heading">
-          <span class="eyebrow">{{ scope.name.toUpperCase() }}</span
+          <span class="eyebrow">{{ (selectedRewardScope === 'general' ? 'Общий боевой пропуск' : catalog.subjects.find(s => s.id === selectedRewardScope)?.name || '').toUpperCase() }}</span
           ><span class="subtle-count"
             >{{
-              rewards.filter((r) => r.subject_id === scope.subject_id).length
+              rewards.filter((r) => r.subject_id === (selectedRewardScope === 'general' ? null : selectedRewardScope)).length
             }}
             уровней</span
           >
         </div>
         <article
           v-for="item in rewards.filter(
-            (r) => r.subject_id === scope.subject_id,
+            (r) => r.subject_id === (selectedRewardScope === 'general' ? null : selectedRewardScope),
           )"
           :key="item.id"
           class="manager-reward-row panel"
@@ -68,7 +54,7 @@ const { store, route, router, tab, catalog, members, requests, invites, rewards,
             ><strong>{{ item.name }}</strong
             ><small
               >{{
-                { TITLE: "Звание", FRAME: "Рамка", BADGE: "Достижение" }[
+                  { TITLE: "Звание", FRAME: "Рамка", BADGE: "Достижение", CUSTOM: "Кастомная награда" }[
                   item.kind
                 ]
               }}
@@ -94,7 +80,7 @@ const { store, route, router, tab, catalog, members, requests, invites, rewards,
           ></span>
         </article>
         <p
-          v-if="!rewards.some((r) => r.subject_id === scope.subject_id)"
+          v-if="!rewards.some((r) => r.subject_id === (selectedRewardScope === 'general' ? null : selectedRewardScope))"
           class="empty-inline"
         >
           Здесь будут появляться новые уровни.

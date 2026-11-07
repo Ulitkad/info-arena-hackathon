@@ -4,6 +4,7 @@ import { useTeacherPage } from '../../composables/useTeacherPage';
 import Icon from '../../components/Icon.vue';
 import TeacherHomework from './Homework.vue';
 import TeacherEvents from './Events.vue';
+import TeacherRewards from './Rewards.vue';
 import TeacherModals from './Modals.vue';
 const teacher = useTeacherPage();
 provide('teacher-page', teacher);
@@ -52,11 +53,17 @@ const { store, route, tab, catalog, modal, loading, reviews, participants, toast
         @click="tab = 'events'"
       >
         <Icon name="calendar" :size="16" />Мероприятия
-      </button>
+      </button><button
+        role="tab"
+        :aria-selected="tab === 'rewards'"
+        :class="{ active: tab === 'rewards' }"
+        @click="tab = 'rewards'"
+      ><Icon name="award" :size="16" />Боевые пропуски</button>
     </div>
     <TeacherHomework v-if="tab === 'homework'" />
-    <TeacherEvents v-else />
-    <div v-if="!canCreate" class="empty-inline panel">
+    <TeacherEvents v-else-if="tab === 'events'" />
+    <TeacherRewards v-else-if="tab === 'rewards'" />
+    <div v-if="tab !== 'rewards' && !canCreate" class="empty-inline panel">
       <Icon name="settings" :size="20" /><span>Попроси управляющего настроить предметы и группы для твоей нагрузки.</span>
     </div>
     <TeacherModals />

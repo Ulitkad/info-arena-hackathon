@@ -36,6 +36,7 @@ const reward = ref({
   icon: "award",
 });
 const editRewardId = ref(null);
+const selectedRewardScope = ref("general");
 const organizations = ref([]), inviteUrl = ref("");
 const organizationId = computed(() => store.user.role === "ADMIN"
   ? Number(route.query.organization) || organizations.value[0]?.id || null
@@ -237,6 +238,7 @@ async function saveReward() {
 }
 function editReward(item) {
   editRewardId.value = item.id;
+  selectedRewardScope.value = item.subject_id === null ? "general" : item.subject_id;
   reward.value = {
     name: item.name,
     kind: item.kind,
@@ -244,6 +246,18 @@ function editReward(item) {
     subject_id: item.subject_id || "",
     asset_url: item.asset_url,
     icon: item.icon || "award",
+  };
+  modal.value = "reward";
+}
+function resetReward() {
+  editRewardId.value = null;
+  reward.value = {
+    name: "",
+    kind: "BADGE",
+    threshold: 10,
+    subject_id: selectedRewardScope.value === "general" ? "" : String(selectedRewardScope.value),
+    asset_url: null,
+    icon: "award",
   };
   modal.value = "reward";
 }
@@ -271,5 +285,5 @@ async function saveRename() {
   renameTarget.value = null;
   renameName.value = '';
 }
-  return {store, route, router, tab, catalog, members, requests, invites, rewards, modal, loading, search, message, groupName, subjectName, subjectColor, inviteGroup, assign, editingTeacher, inviteRole, renameTarget, renameName, reward, editRewardId, organizations, inviteUrl, organizationId, filteredMembers, pendingByGroup, studentCount, load, chooseOrganization, perform, routeTab, createGroup, createSubject, saveLinks, toggleLink, invite, moderate, copyInvite, approveAll, openTeacher, saveTeacherLoads, deleteMember, deleteTeacher, saveReward, editReward, deleteReward, openRename, saveRename};
+  return {store, route, router, tab, catalog, members, requests, invites, rewards, modal, loading, search, message, groupName, subjectName, subjectColor, inviteGroup, assign, editingTeacher, inviteRole, renameTarget, renameName, reward, editRewardId, selectedRewardScope, organizations, inviteUrl, organizationId, filteredMembers, pendingByGroup, studentCount, load, chooseOrganization, perform, routeTab, createGroup, createSubject, saveLinks, toggleLink, invite, moderate, copyInvite, approveAll, openTeacher, saveTeacherLoads, deleteMember, deleteTeacher, saveReward, resetReward, editReward, deleteReward, openRename, saveRename};
 }
