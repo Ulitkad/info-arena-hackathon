@@ -9,16 +9,22 @@ import httpx
 from .config import Settings, get_settings
 
 log = logging.getLogger("arena.bot")
+BUNDLED_CA = Path("/opt/arena/russian-trusted-root-ca.crt")
 
 
 class PollingConflictError(RuntimeError):
     """A webhook is configured; never silently remove someone else's subscription."""
 
 
+def ca_bundle(settings: Settings) -> str:
+    return settings.max_ca_bundle or (str(BUNDLED_CA) if BUNDLED_CA.is_file() else "")
+
+
 def tls_context(settings: Settings) -> ssl.SSLContext:
     context = ssl.create_default_context()
-    if settings.max_ca_bundle:
-        context.load_verify_locations(settings.max_ca_bundle)
+    bundle = ca_bundle(settings)
+    if bundle:
+        context.load_verify_locations(bundle)
     return context
 
 
@@ -144,7 +150,7 @@ async def run():
     marker_file = Path("/data/bot-marker") if Path("/data").exists() else Path("data/bot-marker")
     marker_file.parent.mkdir(parents=True, exist_ok=True)
     marker = int(marker_file.read_text()) if marker_file.exists() else None
-    log.info("MAX bot starting; custom_ca=%s; checking token and webhook subscriptions", bool(settings.max_ca_bundle))
+    log.info("MAX bot starting; additional_ca=%s; checking token and webhook subscriptions", bool(ca_bundle(settings)))
     async with api_client(settings) as client:
         checked = False
         connected = False

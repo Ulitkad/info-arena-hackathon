@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from .bot import PollingConflictError, api_client, check_polling, request_failure, tls_context
+from .bot import PollingConflictError, api_client, ca_bundle, check_polling, request_failure, tls_context
 from .config import get_settings
 
 
@@ -35,7 +35,8 @@ async def diagnose() -> int:
     except (OSError, ssl.SSLError, ValueError) as exc:
         print(f"FAIL: custom CA cannot be loaded ({type(exc).__name__}); check MAX_CA_BUNDLE and its mount")
         return 1
-    print(f"CA: system trust + custom bundle={bool(settings.max_ca_bundle)}; verification enabled")
+    source = "custom" if settings.max_ca_bundle else "bundled" if ca_bundle(settings) else "none"
+    print(f"CA: system trust + additional bundle={source}; verification enabled")
 
     # Direct probes isolate DNS, TCP and TLS. HTTP below still uses the bot's
     # normal proxy settings, so a direct probe failure alone is not definitive.

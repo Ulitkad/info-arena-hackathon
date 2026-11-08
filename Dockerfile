@@ -36,6 +36,7 @@ COPY --from=frontend-build /frontend/dist/ /usr/share/nginx/html/
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/arena.conf
 COPY docker/entrypoint.sh docker/start-bot.py docker/healthcheck.py /opt/arena/
+COPY docker/certs/russian-trusted-root-ca.crt /opt/arena/russian-trusted-root-ca.crt
 
 USER arena
 EXPOSE 8080

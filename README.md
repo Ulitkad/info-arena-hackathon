@@ -6,6 +6,14 @@ Info Arena is a MAX bot and Mini App for gamified learning. It provides assignme
 
 The frontend uses Vue 3, Vite, Pinia, and Vue Router. The backend uses FastAPI, SQLAlchemy 2, SQLite, and Alembic.
 
+## Hackathon reviewers
+
+**[Review and deployment guide (Russian)](docs/review.ru.md)**: start here for a
+token-free local demo, role walkthrough and real MAX bot deployment.
+Docker Hub: https://hub.docker.com/r/ulitkad/info-arena.
+Running the published image only needs `compose.yml` and a configured `.env`;
+the Python/Node.js development prerequisites below are **not required**.
+
 ## Features
 
 - **Student:** join an institution through an invitation, submit and revise assignments, register for events, use institution and subject Battlepass tracks, collect achievements, add friends, and start duels.
@@ -206,6 +214,8 @@ publishes one image for `linux/amd64` and `linux/arm64`. It does not test real M
 connectivity. Pushes to `main`, `v*` tags and manual workflow runs publish
 `ulitkad/info-arena:latest`. The username and tag are fixed in the workflow and
 Compose; no additional GitHub Variables or image variables in `.env` are needed.
+A separate CI check deploys the image with only `compose.yml` and `.env` in a
+fresh directory, verifies the bundled CA and confirms demo login is disabled by default.
 
 Submit `ulitkad/info-arena:latest`, `compose.yml`, a safe `.env.example` and demo
 instructions. Do not share your working `.env`, tokens or databases. The Docker
@@ -235,7 +245,7 @@ The configuration file is resolved relative to the current working directory. Lo
 | `BOT_USERNAME` | Bot name from `https://max.ru/<name>`, without `@` or the URL. Used in launch links and the bot button. |
 | `ADMIN_MAX_ID` | Numeric MAX ID of the initial administrator. The role is granted after a verified MAX login. |
 | `BOT_API_URL` | MAX API base URL. Default: `https://platform-api2.max.ru`. |
-| `MAX_CA_BUNDLE` | Optional path to a trusted PEM CA bundle that supplements the client's system trust store. |
+| `MAX_CA_BUNDLE` | Usually empty: the image bundles the MAX root CA. An explicit path replaces the extra CA (not system roots) and requires a file mount. |
 | `DEV_AUTH` | Defaults to `false`. Local development only. |
 | `SEED_DEMO` | Defaults to `false`. Requires `DEV_AUTH=true` and creates demo data when the API starts. |
 
@@ -261,7 +271,12 @@ A new student group link revokes the previous one. Teacher and manager invitatio
 
 ### TLS and certificates
 
-TLS verification is always enabled. If the system trust store does not trust the MAX API certificate, obtain the trusted root CA from an official source and set `MAX_CA_BUNDLE`. Never disable certificate verification.
+TLS verification is always enabled. The image includes the public Russian Trusted
+Root CA for MAX; the bot adds it to system roots. Leave `MAX_CA_BUNDLE` empty for
+normal two-file deployment. Source, fingerprint and expiry are recorded in
+[docker/certs/README.md](docker/certs/README.md). For host development or another
+CA, obtain a trusted certificate from its official source and set `MAX_CA_BUNDLE`.
+Never disable TLS verification.
 
 If a custom CA is required, its PEM file must be accessible inside `app`. This
 optional extension requires a certificate file in addition to the two deployment
@@ -370,6 +385,7 @@ frontend/src/         Vue components, role pages, router, and Pinia stores
 frontend/tests/       session lifecycle tests
 Dockerfile            single image: frontend, API, Nginx and bot
 docker/               process/Nginx configuration, healthcheck and smoke test
+docs/review.ru.md      reviewer guide: demo, real MAX deployment and diagnostics
 compose.yml           one app service and persistent volumes
 nginx/default.conf    previous split frontend build configuration
 ```

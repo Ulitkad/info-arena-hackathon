@@ -217,6 +217,35 @@ def test_api_client_keeps_tls_verification_and_separate_connect_timeout(bot_sett
     assert context.check_hostname
 
 
+def test_bundled_ca_is_used_when_no_explicit_bundle(bot_settings, monkeypatch):
+    from pathlib import Path
+    bundle = Path(__file__).resolve().parents[2] / "docker/certs/russian-trusted-root-ca.crt"
+    monkeypatch.setattr(bot, "BUNDLED_CA", bundle)
+    bot_settings.max_ca_bundle = ""
+    assert bot.ca_bundle(bot_settings) == str(bundle)
+    context = bot.tls_context(bot_settings)
+    import hashlib
+    expected = "d26d2d0231b7c39f92cc738512ba54103519e4405d68b5bd703e9788ca8ecf31"
+    assert hashlib.sha256(ssl.PEM_cert_to_DER_cert(bundle.read_text())).hexdigest() == expected
+    assert any(hashlib.sha256(cert).hexdigest() == expected for cert in context.get_ca_certs(binary_form=True))
+    assert context.verify_mode == ssl.CERT_REQUIRED and context.check_hostname
+
+
+def test_explicit_ca_takes_precedence(bot_settings, monkeypatch, tmp_path):
+    bundle = tmp_path / "bundled.pem"
+    bundle.touch()
+    monkeypatch.setattr(bot, "BUNDLED_CA", bundle)
+    bot_settings.max_ca_bundle = "/certs/custom.pem"
+    assert bot.ca_bundle(bot_settings) == "/certs/custom.pem"
+
+
+def test_host_install_uses_system_trust_without_bundled_ca(bot_settings, monkeypatch, tmp_path):
+    monkeypatch.setattr(bot, "BUNDLED_CA", tmp_path / "missing.pem")
+    bot_settings.max_ca_bundle = ""
+    assert bot.ca_bundle(bot_settings) == ""
+    assert bot.tls_context(bot_settings).verify_mode == ssl.CERT_REQUIRED
+
+
 async def test_start_command_gets_greeting(bot_settings, caplog):
     def handler(request):
         assert request.url.path == "/messages"

@@ -69,6 +69,9 @@ jobs:
       - name: Check demo startup and restart
         run: sh docker/smoke-test.sh info-arena:smoke
 
+      - name: Check standalone two-file deployment
+        run: python3 docker/compose-smoke-test.py info-arena:smoke
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
