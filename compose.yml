@@ -1,0 +1,18 @@
+services:
+  app:
+    image: "${DOCKERHUB_USERNAME:?Set DOCKERHUB_USERNAME in .env}/info-arena:${IMAGE_TAG:-latest}"
+    env_file: .env
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////data/arena.db
+      UPLOAD_DIR: /uploads
+    ports:
+      - "${WEB_BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-8080}:8080"
+    volumes:
+      - database:/data
+      - uploads:/uploads
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+volumes:
+  database:
+  uploads:

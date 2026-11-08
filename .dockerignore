@@ -1,10 +1,27 @@
 .git
 .gitignore
-.env
+.github
+.agents
+docs
+**/.env
+**/.env.*
+!**/.env.example
 
-frontend/node_modules
-frontend/dist
-backend
+**/node_modules
+**/dist
+**/.venv
+**/data
+**/uploads
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/.pytest_cache
+**/.ruff_cache
+**/.coverage
+**/coverage
+**/playwright-report
+**/test-results
+backend/tests
 
 **/__pycache__
 **/*.py[cod]

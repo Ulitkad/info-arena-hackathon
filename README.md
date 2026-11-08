@@ -92,34 +92,135 @@ Demo authentication is enabled only when both `DEV_AUTH=true` and `SEED_DEMO=tru
 
 ## Docker Compose deployment
 
-Install Docker Engine and the Compose v2 plugin for your Debian-based distribution. From the repository root:
+The application ships as **one image**, `<dockerhub-username>/info-arena:<tag>`.
+It contains the built frontend, Nginx, FastAPI, the scheduler and the MAX bot.
+Supervisor manages the processes as the unprivileged user UID 10001. The
+container listens on HTTP port `8080`; the API health endpoint is `/api/health`.
+
+The server only needs Docker Engine with Compose v2 and **two files in the same directory**:
+
+```text
+compose.yml
+.env
+```
+
+No source checkout, Dockerfile, Python, Node.js or Nginx configuration is needed
+on the server. The image must already be published. Obtain `compose.yml` and
+copy the provided environment template:
 
 ```bash
 cp .env.example .env
 ```
 
-Set a random `SECRET_KEY` in `.env`. For a demo deployment, set both `DEV_AUTH=true` and `SEED_DEMO=true`. Start the stack:
+Set `DOCKERHUB_USERNAME`, `IMAGE_TAG` (e.g. `1.0.0` or `latest`) and a persistent
+random `SECRET_KEY` of at least 32 characters in `.env`. Generate a key with:
 
 ```bash
-docker compose up --build -d
-docker compose logs -f api web bot
+openssl rand -hex 32
+chmod 600 .env
 ```
 
-The application is available at <http://localhost> and the API health check is at <http://localhost/api/health>.
+For **local hackathon review**, set `DEV_AUTH=true`, `SEED_DEMO=true`, leave
+`BOT_TOKEN` empty and keep `WEB_BIND_ADDRESS=127.0.0.1`. The login page offers
+student, teacher, manager and administrator demo users. Never expose demo
+authentication publicly. Real MAX deployments need both demo flags set to
+`false`, a bot token and a public HTTPS `BASE_APP_URL`.
 
-Set the public port with `WEB_PORT` in the root `.env` (default: `80`). For example, with `WEB_PORT=8080`, use <http://localhost:8080> and set `BASE_APP_URL` to the same URL. The port inside the container remains `80`.
+Run from the directory containing the two files (public images require no login):
 
-Services:
+```bash
+docker compose pull
+docker compose up -d --wait
+docker compose ps
+curl --fail http://127.0.0.1:8080/api/health
+docker compose logs -f app
+```
 
-| Service | Description |
-| --- | --- |
-| `api` | Applies migrations, runs FastAPI, and runs the scheduler in one worker. |
-| `web` | Serves the built frontend through Nginx and proxies the API and WebSocket traffic on port 80. |
-| `bot` | Runs one MAX long-polling instance. It remains inactive when `BOT_TOKEN` is not set. |
+Open <http://localhost:8080>. `WEB_PORT` controls the host port and
+`WEB_BIND_ADDRESS` defaults to `127.0.0.1` (host-local access only). Set it to
+`0.0.0.0` for direct remote access and configure your firewall. `BASE_APP_URL`
+must match the address used to access the application.
 
-SQLite data and uploaded files are stored in the named `database` and `uploads` volumes. `docker compose down` keeps these volumes. Do not use `docker compose down -v` if the data is needed. Before upgrades, create a consistent backup of the SQLite database with the API stopped, or use the SQLite backup API, and back up the uploads directory.
+Every startup applies Alembic migrations before starting the HTTP server. Failed
+migrations prevent startup. The container runs exactly one API worker/scheduler,
+one Nginx and one polling bot. The bot remains inactive without `BOT_TOKEN`.
+All process logs go to `docker compose logs`. The healthcheck tests both the
+frontend and API through Nginx, not external MAX connectivity.
 
-The bundled Nginx configuration is HTTP-only. A production Mini App requires an external HTTPS reverse proxy or load balancer with a valid certificate chain. Proxy `/ws`, set the public HTTPS URL in `BASE_APP_URL`, and restrict direct access to the HTTP port.
+SQLite and uploads persist in the named `database` and `uploads` volumes.
+`docker compose down` keeps them; **do not use `down -v` for data you need**.
+Keep the deployment directory/Compose project name unchanged to reuse the same
+volumes. Before upgrades, back up SQLite consistently with the application
+stopped or via the SQLite backup API, and back up uploads.
+
+To update, wait for a successful image publication, change `IMAGE_TAG` and run:
+
+```bash
+docker compose pull
+docker compose up -d --wait
+```
+
+Keep `SECRET_KEY` unchanged. Pin a version or SHA tag for review rather than
+`latest`. Image rollback does not roll back database migrations. Updates can
+cause brief downtime.
+
+The image serves HTTP only. A production Mini App needs an external HTTPS
+reverse proxy with a valid certificate chain, WebSocket support for `/ws`, and
+an HTTPS `BASE_APP_URL`. Keep the loopback binding for a host-level proxy. A
+containerized proxy needs a shared Docker network or another reachable address:
+its `127.0.0.1` does not refer to this application.
+
+### Build the single image locally
+
+From the repository root:
+
+```bash
+docker build -t info-arena:local .
+sh docker/smoke-test.sh info-arena:local
+```
+
+The smoke test uses isolated demo volumes and a generated secret, never the
+host `.env`. It checks frontend/SPA routes, API, all demo roles, hidden-file
+blocking and a restart with persisted data, then removes the test volumes.
+
+To use the local image with the deployment Compose file:
+
+```bash
+docker tag info-arena:local your-dockerhub-username/info-arena:local
+```
+
+Set the matching `DOCKERHUB_USERNAME` and `IMAGE_TAG=local` in `.env`, then run
+`docker compose up -d --wait --pull never`, without running `docker compose pull`.
+
+### Publish using GitHub Actions
+
+Create the public Docker Hub repository `your-dockerhub-username/info-arena`.
+In GitHub → Settings → Secrets and variables → Actions, add:
+
+- Repository variable `DOCKERHUB_USERNAME`: your Docker Hub username;
+- Repository secret `DOCKERHUB_TOKEN`: a Docker Hub PAT with Read & Write permissions.
+
+On push to `main`, `.github/workflows/docker-publish.yml` runs the application
+tests, builds the image, smoke-tests demo startup/restart on `amd64`, then
+publishes one image for `linux/amd64` and `linux/arm64`. It does not test real MAX
+connectivity. Main publishes `latest` and `sha-<full-SHA>`; a `v1.0.0` tag publishes `1.0.0`:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Submit the pinned image address, `compose.yml`, a safe `.env.example` and demo
+instructions. Do not share your working `.env`, tokens or databases. The Docker
+Hub username in the image address is public, not a secret.
+
+### Migrating from the previous Compose stack
+
+The previous `compose.yaml` ran separate `api`, `web` and `bot` services. Stop it
+**before** replacing the file, without `-v`, and back up your data. Keep the same
+directory/project name and volumes, then start the new `compose.yml`. Never run
+old and new stacks concurrently against the same SQLite database or polling
+token. Do not leave the old `compose.yaml` next to `compose.yml`: Compose prefers it.
 
 ## Environment variables
 
@@ -127,9 +228,13 @@ The configuration file is resolved relative to the current working directory. Lo
 
 | Variable | Description |
 | --- | --- |
+| `DOCKERHUB_USERNAME` | Owner of the published `info-arena` image. Public value, not a token. |
+| `IMAGE_TAG` | Image tag, default `latest`. Pin a version or SHA for review. |
+| `WEB_PORT` | Host HTTP port, default `8080`. |
+| `WEB_BIND_ADDRESS` | Default `127.0.0.1`; `0.0.0.0` exposes the port on all IPv4 interfaces. |
 | `SECRET_KEY` | Required random JWT secret, at least 32 characters. Use the same value for all API instances. Changing it invalidates existing tokens. |
-| `DATABASE_URL` | Local: `sqlite+aiosqlite:///./data/arena.db`. Docker: `sqlite+aiosqlite:////data/arena.db`. |
-| `UPLOAD_DIR` | Local: `uploads`. Compose overrides it to `/uploads` for the API. |
+| `DATABASE_URL` | Local: `sqlite+aiosqlite:///./data/arena.db`. Compose fixes it to `sqlite+aiosqlite:////data/arena.db` to match the volume. |
+| `UPLOAD_DIR` | Local: `uploads`. Compose fixes it to `/uploads` to match Nginx and the volume. |
 | `BASE_APP_URL` | Public root URL of the Mini App without a trailing slash. Local default: `http://localhost:5173`. |
 | `BOT_TOKEN` | MAX bot token. Keep it on the server and out of the frontend. |
 | `BOT_USERNAME` | Bot name from `https://max.ru/<name>`, without `@` or the URL. Used in launch links and the bot button. |
@@ -149,7 +254,7 @@ The configuration file is resolved relative to the current working directory. Lo
    uv run --directory backend python -m app.bot
    ```
 
-   Compose starts the bot service automatically.
+    The single container starts the bot process automatically.
 
 4. The bot uses long polling, not webhooks. Do not run multiple instances with the same token or leave an active webhook subscription. Remove an old webhook through the MAX API before enabling polling.
 5. Send `/start` to the bot and open the arena using its button. A user without an assignment enters the pending state. The initial administrator creates an institution and selects "Invite manager" in its card. Pass the one-time link to the future manager; a username or ID is not required.
@@ -163,21 +268,24 @@ A new student group link revokes the previous one. Teacher and manager invitatio
 
 TLS verification is always enabled. If the system trust store does not trust the MAX API certificate, obtain the trusted root CA from an official source and set `MAX_CA_BUNDLE`. Never disable certificate verification.
 
-For Compose, the PEM file must be available inside the `bot` container. Create a local `compose.override.yaml`, for example:
+If a custom CA is required, its PEM file must be accessible inside `app`. This
+optional extension requires a certificate file in addition to the two deployment
+files. Add a mount to `compose.yml`, for example:
 
 ```yaml
 services:
-  bot:
+  app:
     volumes:
       - ./certs/max-ca.pem:/certs/max-ca.pem:ro
     environment:
       MAX_CA_BUNDLE: /certs/max-ca.pem
 ```
 
-The `environment` value in the override takes precedence over an empty `MAX_CA_BUNDLE=` in `.env`. Recreate the container after changing the CA or override file:
+The `environment` value takes precedence over an empty `MAX_CA_BUNDLE=` in `.env`.
+Recreate the container after changing the CA:
 
 ```bash
-docker compose up -d --force-recreate bot
+docker compose up -d --force-recreate app
 ```
 
 `ConnectTimeout` during a TLS handshake indicates a connection timeout, not a CA trust error. Check outbound HTTPS connectivity, DNS, and proxy settings from the host or container. Do not disable TLS verification.
@@ -202,7 +310,7 @@ Official references: [Bridge](https://dev.max.ru/docs/webapps/bridge/), [validat
 Run backend checks from the repository root:
 
 ```bash
-PYTHONPATH=backend uv run --directory backend pytest -q
+uv run --directory backend python -m pytest -q
 uv run --directory backend ruff check app migrations tests
 ```
 
@@ -234,6 +342,8 @@ backend/migrations/   Alembic migrations
 backend/tests/        integration and security tests
 frontend/src/         Vue components, role pages, router, and Pinia stores
 frontend/tests/       session lifecycle tests
-nginx/default.conf    HTTP proxy and frontend/upload serving
-compose.yaml          API, bot, web, and volumes
+Dockerfile            single image: frontend, API, Nginx and bot
+docker/               process/Nginx configuration, healthcheck and smoke test
+compose.yml           one app service and persistent volumes
+nginx/default.conf    previous split frontend build configuration
 ```

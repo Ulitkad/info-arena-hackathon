@@ -92,34 +92,136 @@ npm run dev -- --port 5173 --strictPort
 
 ## Развёртывание через Docker Compose
 
-Установите Docker Engine и плагин Compose v2 для своего Debian-based дистрибутива. Из корня репозитория создайте файл окружения:
+Приложение поставляется **одним образом** `<dockerhub-username>/info-arena:<tag>`:
+frontend, Nginx, FastAPI, планировщик и MAX-бот работают в одном контейнере под
+управлением Supervisor, от непривилегированного пользователя UID 10001.
+Внешний порт контейнера — `8080`, healthcheck — `/api/health`.
+
+На сервере нужны только Docker Engine с Compose v2 и **два файла в одном каталоге**:
+
+```text
+compose.yml
+.env
+```
+
+Исходники, Dockerfile, Node.js, Python и конфигурации Nginx на сервер не нужны.
+Образ должен быть уже опубликован в Docker Hub. Для первого запуска возьмите
+`compose.yml` и скопируйте `.env.example` в `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-Укажите случайный `SECRET_KEY` в `.env`. Для демо-развёртывания установите `DEV_AUTH=true` и `SEED_DEMO=true`. Запустите стек:
+В `.env` укажите `DOCKERHUB_USERNAME`, `IMAGE_TAG` (например, `1.0.0` или `latest`)
+и постоянный случайный `SECRET_KEY` длиной не менее 32 символов. Создать секрет:
 
 ```bash
-docker compose up --build -d
-docker compose logs -f api web bot
+openssl rand -hex 32
+chmod 600 .env
 ```
 
-Приложение доступно по адресу <http://localhost>, проверка API - по адресу <http://localhost/api/health>.
+Для **локальной проверки хакатона** задайте `DEV_AUTH=true`, `SEED_DEMO=true`,
+оставьте `BOT_TOKEN` пустым и `WEB_BIND_ADDRESS=127.0.0.1`. После запуска войдите
+через демокнопки ученика, преподавателя, управляющего и администратора.
+Деморежим нельзя включать на публичном сервере. Для реального MAX используйте
+`DEV_AUTH=false`, `SEED_DEMO=false`, токен бота и публичный HTTPS `BASE_APP_URL`.
 
-Внешний порт задаётся переменной `WEB_PORT` в корневом `.env` (по умолчанию `80`). Например, при `WEB_PORT=8080` приложение будет доступно по адресу <http://localhost:8080>, а `BASE_APP_URL` должен содержать этот же адрес. Порт внутри контейнера остаётся `80`.
+Запуск из каталога с двумя файлами (для публичного образа `docker login` не нужен):
 
-Сервисы:
+```bash
+docker compose pull
+docker compose up -d --wait
+docker compose ps
+curl --fail http://127.0.0.1:8080/api/health
+docker compose logs -f app
+```
 
-| Сервис | Назначение |
-| --- | --- |
-| `api` | Применяет миграции, запускает FastAPI и планировщик в одном worker. |
-| `web` | Раздаёт собранный frontend через Nginx и проксирует API и WebSocket на порту 80. |
-| `bot` | Запускает один экземпляр MAX long polling. Без `BOT_TOKEN` сервис остаётся неактивным. |
+Приложение доступно по адресу <http://localhost:8080>. Порт хоста задаётся
+`WEB_PORT`, адрес привязки — `WEB_BIND_ADDRESS` (по умолчанию `127.0.0.1`, только
+локальный доступ). Для прямого доступа с других машин задайте `0.0.0.0` и
+настройте firewall. `BASE_APP_URL` должен соответствовать адресу приложения.
 
-SQLite и загруженные файлы хранятся в именованных volumes `database` и `uploads`. Команда `docker compose down` сохраняет эти volumes. Не используйте `docker compose down -v`, если данные нужны. Перед обновлением создайте согласованную резервную копию SQLite при остановленном API или через SQLite backup API, а также сохраните каталог uploads.
+При каждом старте сначала применяются миграции Alembic. При их ошибке контейнер
+не запускает HTTP-сервер. Затем запускаются один API worker с планировщиком,
+Nginx и один polling-бот. Без `BOT_TOKEN` бот остаётся неактивным. Логи всех
+процессов доступны через `docker compose logs`. Healthcheck проверяет frontend
+и API через Nginx; он не подтверждает доступность внешнего MAX API.
 
-Встроенная конфигурация Nginx работает только по HTTP. Для production Mini App нужен внешний HTTPS reverse proxy или балансировщик с корректной цепочкой сертификатов. Проксируйте `/ws`, укажите публичный HTTPS-адрес в `BASE_APP_URL` и ограничьте прямой доступ к HTTP-порту.
+SQLite и загруженные файлы хранятся в именованных volumes `database` и `uploads`.
+Обычный `docker compose down` сохраняет данные. **Не используйте `down -v`, если
+данные нужны.** Не меняйте каталог развёртывания или имя Compose-проекта без
+переноса volumes. Перед обновлением создайте согласованную резервную копию
+SQLite при остановленном приложении или через SQLite backup API, а также uploads.
+
+Обновление: дождитесь успешной публикации, измените `IMAGE_TAG` в `.env` и выполните:
+
+```bash
+docker compose pull
+docker compose up -d --wait
+```
+
+Не меняйте `SECRET_KEY` при обновлении. Для сдачи фиксируйте версию или SHA-тег,
+а не `latest`. Откат образа не откатывает миграции базы. Обновление может вызвать
+краткий перерыв в работе.
+
+Встроенный Nginx работает по HTTP. Для production Mini App нужен внешний HTTPS
+reverse proxy с корректной цепочкой сертификатов, проксированием `/ws` и
+`BASE_APP_URL=https://...`. При прокси на хосте оставьте привязку `127.0.0.1`.
+Прокси в отдельном контейнере требует общей Docker-сети или другого доступного
+адреса: его `127.0.0.1` не указывает на приложение.
+
+### Сборка единого образа из исходников
+
+Из корня репозитория:
+
+```bash
+docker build -t info-arena:local .
+sh docker/smoke-test.sh info-arena:local
+```
+
+Smoke test использует отдельные временные volumes и демосекрет, проверяет
+frontend, SPA-маршруты, API, все демороли, запрет скрытых файлов и повторный
+старт с сохранёнными данными. Рабочий `.env` не читается, тестовые volumes удаляются.
+
+Для запуска локально собранного образа через основной Compose:
+
+```bash
+docker tag info-arena:local your-dockerhub-username/info-arena:local
+```
+
+Укажите совпадающий `DOCKERHUB_USERNAME` и `IMAGE_TAG=local` в `.env`, затем
+выполните `docker compose up -d --wait --pull never` (без `docker compose pull`).
+
+### Публикация через GitHub Actions
+
+Создайте публичный репозиторий Docker Hub `your-dockerhub-username/info-arena`.
+В GitHub → Settings → Secrets and variables → Actions добавьте:
+
+- Repository variable `DOCKERHUB_USERNAME` — логин Docker Hub;
+- Repository secret `DOCKERHUB_TOKEN` — Docker Hub PAT с правами Read & Write.
+
+Workflow `.github/workflows/docker-publish.yml` при push в `main` запускает тесты,
+собирает образ, проверяет демозапуск и перезапуск на `amd64`, затем публикует
+единый образ для `linux/amd64` и `linux/arm64`. Реальный MAX при этом не проверяется.
+Push в `main` публикует `latest` и `sha-<полный-SHA>`; тег `v1.0.0` публикует `1.0.0`:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Передайте проверяющим адрес образа с фиксированной версией, `compose.yml`,
+безопасный `.env.example` и инструкцию демозапуска. Рабочий `.env`, токены и базы
+передавать не нужно. Логин в адресе образа публичный и не является секретом.
+
+### Переход со старого Compose
+
+Ранее стек использовал отдельные `api`, `web`, `bot` в `compose.yaml`.
+Остановите старый стек **до** замены файла, без `-v`, и сделайте бэкап.
+Используйте тот же каталог/имя проекта и те же volumes; запустите новый
+`compose.yml`. Одновременно старую и новую версии запускать нельзя: они будут
+делить SQLite и токен polling-бота. Не оставляйте рядом старый `compose.yaml`:
+Compose предпочитает его файлу `compose.yml`.
 
 ## Переменные окружения
 
@@ -127,9 +229,13 @@ SQLite и загруженные файлы хранятся в именован
 
 | Переменная | Назначение |
 | --- | --- |
+| `DOCKERHUB_USERNAME` | Владелец опубликованного образа `info-arena`. Публичное значение, не токен. |
+| `IMAGE_TAG` | Тег образа; по умолчанию `latest`. Для сдачи используйте версию или SHA. |
+| `WEB_PORT` | HTTP-порт хоста; по умолчанию `8080`. |
+| `WEB_BIND_ADDRESS` | По умолчанию `127.0.0.1`; `0.0.0.0` открывает порт на всех IPv4-интерфейсах. |
 | `SECRET_KEY` | Обязательный случайный секрет JWT длиной не менее 32 символов. Все экземпляры API должны использовать одно значение. После смены старые токены недействительны. |
-| `DATABASE_URL` | Локально: `sqlite+aiosqlite:///./data/arena.db`. В Docker: `sqlite+aiosqlite:////data/arena.db`. |
-| `UPLOAD_DIR` | Локально: `uploads`. Compose переопределяет значение на `/uploads` для API. |
+| `DATABASE_URL` | Локально: `sqlite+aiosqlite:///./data/arena.db`. Compose фиксирует `sqlite+aiosqlite:////data/arena.db` для volume. |
+| `UPLOAD_DIR` | Локально: `uploads`. Compose фиксирует `/uploads`, совпадающий с каталогом Nginx. |
 | `BASE_APP_URL` | Публичный корневой адрес Mini App без завершающего `/`. Локальное значение: `http://localhost:5173`. |
 | `BOT_TOKEN` | Токен MAX-бота. Храните его только на сервере, не во frontend. |
 | `BOT_USERNAME` | Имя бота из `https://max.ru/<name>`, без `@` и URL. Используется в ссылках запуска и кнопке бота. |
@@ -149,7 +255,7 @@ SQLite и загруженные файлы хранятся в именован
    uv run --directory backend python -m app.bot
    ```
 
-   В Compose сервис бота запускается автоматически.
+   В едином контейнере процесс бота запускается автоматически.
 
 4. Бот использует long polling, а не webhook. Не запускайте несколько экземпляров с одним токеном и не оставляйте активную webhook-подписку. Перед включением polling удалите старый webhook через MAX API.
 5. Отправьте боту `/start` и откройте арену кнопкой. Пользователь без назначения получает статус ожидания. Первоначальный администратор создаёт учреждение и выбирает "Пригласить управляющего" в его карточке. Передайте будущему управляющему одноразовую ссылку; username или ID не требуется.
@@ -163,21 +269,24 @@ SQLite и загруженные файлы хранятся в именован
 
 Проверка TLS всегда включена. Если системное хранилище не доверяет сертификату MAX API, получите доверенный корневой CA из официального источника и укажите `MAX_CA_BUNDLE`. Не отключайте проверку сертификатов.
 
-Для Compose PEM-файл должен быть доступен внутри контейнера `bot`. Создайте локальный `compose.override.yaml`, например:
+Если нужен дополнительный CA, PEM-файл должен быть доступен внутри контейнера
+`app`. Это необязательное расширение требует файла сертификата в дополнение к
+двум основным файлам. Добавьте mount в `compose.yml`, например:
 
 ```yaml
 services:
-  bot:
+  app:
     volumes:
       - ./certs/max-ca.pem:/certs/max-ca.pem:ro
     environment:
       MAX_CA_BUNDLE: /certs/max-ca.pem
 ```
 
-Значение `environment` в override имеет приоритет над пустым `MAX_CA_BUNDLE=` в `.env`. После изменения CA или override пересоздайте контейнер:
+Значение `environment` имеет приоритет над пустым `MAX_CA_BUNDLE=` в `.env`.
+После изменения CA пересоздайте контейнер:
 
 ```bash
-docker compose up -d --force-recreate bot
+docker compose up -d --force-recreate app
 ```
 
 `ConnectTimeout` во время TLS handshake означает таймаут соединения, а не ошибку доверия CA. Проверьте исходящий HTTPS, DNS и настройки proxy с хоста или из контейнера. Не отключайте проверку TLS.
@@ -202,7 +311,7 @@ Frontend передаёт серверу необработанный `window.We
 Запустите проверки backend из корня репозитория:
 
 ```bash
-PYTHONPATH=backend uv run --directory backend pytest -q
+uv run --directory backend python -m pytest -q
 uv run --directory backend ruff check app migrations tests
 ```
 
@@ -234,6 +343,8 @@ backend/migrations/   миграции Alembic
 backend/tests/        интеграционные и security-тесты
 frontend/src/         Vue-компоненты, страницы ролей, router и хранилища Pinia
 frontend/tests/       тесты жизненного цикла сессии
-nginx/default.conf    HTTP-прокси и раздача frontend/uploads
-compose.yaml          API, бот, web и volumes
+Dockerfile            единый образ: frontend, API, Nginx и бот
+docker/               конфигурации процессов, Nginx, healthcheck и smoke test
+compose.yml           один сервис app и постоянные volumes
+nginx/default.conf    конфигурация прежней раздельной сборки frontend
 ```
