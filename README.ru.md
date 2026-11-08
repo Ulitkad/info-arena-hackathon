@@ -92,7 +92,7 @@ npm run dev -- --port 5173 --strictPort
 
 ## Развёртывание через Docker Compose
 
-Приложение поставляется **одним образом** `<dockerhub-username>/info-arena:<tag>`:
+Приложение поставляется **одним образом** `ulitkad/info-arena:latest`:
 frontend, Nginx, FastAPI, планировщик и MAX-бот работают в одном контейнере под
 управлением Supervisor, от непривилегированного пользователя UID 10001.
 Внешний порт контейнера — `8080`, healthcheck — `/api/health`.
@@ -112,8 +112,9 @@ compose.yml
 cp .env.example .env
 ```
 
-В `.env` укажите `DOCKERHUB_USERNAME`, `IMAGE_TAG` (например, `1.0.0` или `latest`)
-и постоянный случайный `SECRET_KEY` длиной не менее 32 символов. Создать секрет:
+Адрес образа `ulitkad/info-arena:latest` зафиксирован в `compose.yml`.
+В `.env` укажите постоянный случайный `SECRET_KEY` длиной не менее 32 символов.
+Создать секрет:
 
 ```bash
 openssl rand -hex 32
@@ -153,16 +154,16 @@ SQLite и загруженные файлы хранятся в именован
 переноса volumes. Перед обновлением создайте согласованную резервную копию
 SQLite при остановленном приложении или через SQLite backup API, а также uploads.
 
-Обновление: дождитесь успешной публикации, измените `IMAGE_TAG` в `.env` и выполните:
+Обновление: дождитесь успешной публикации нового `latest` и выполните:
 
 ```bash
 docker compose pull
 docker compose up -d --wait
 ```
 
-Не меняйте `SECRET_KEY` при обновлении. Для сдачи фиксируйте версию или SHA-тег,
-а не `latest`. Откат образа не откатывает миграции базы. Обновление может вызвать
-краткий перерыв в работе.
+Не меняйте `SECRET_KEY` при обновлении. `latest` перезаписывается при каждой
+публикации; для фиксации сданной сборки сохраните digest образа. Откат образа
+не откатывает миграции базы. Обновление может вызвать краткий перерыв в работе.
 
 Встроенный Nginx работает по HTTP. Для production Mini App нужен внешний HTTPS
 reverse proxy с корректной цепочкой сертификатов, проксированием `/ws` и
@@ -186,31 +187,27 @@ frontend, SPA-маршруты, API, все демороли, запрет ск�
 Для запуска локально собранного образа через основной Compose:
 
 ```bash
-docker tag info-arena:local your-dockerhub-username/info-arena:local
+docker tag info-arena:local ulitkad/info-arena:latest
 ```
 
-Укажите совпадающий `DOCKERHUB_USERNAME` и `IMAGE_TAG=local` в `.env`, затем
-выполните `docker compose up -d --wait --pull never` (без `docker compose pull`).
+Выполните `docker compose up -d --wait --pull never` (без `docker compose pull`).
+Это использует локальный образ вместо скачивания опубликованного `latest`.
 
 ### Публикация через GitHub Actions
 
-Создайте публичный репозиторий Docker Hub `your-dockerhub-username/info-arena`.
+Создайте публичный репозиторий Docker Hub `ulitkad/info-arena`.
 В GitHub → Settings → Secrets and variables → Actions добавьте:
 
-- Repository variable `DOCKERHUB_USERNAME` — логин Docker Hub;
-- Repository secret `DOCKERHUB_TOKEN` — Docker Hub PAT с правами Read & Write.
+- Repository secret `DOCKERHUB_TOKEN` — Docker Hub PAT аккаунта `ulitkad` с правами Read & Write.
 
 Workflow `.github/workflows/docker-publish.yml` при push в `main` запускает тесты,
 собирает образ, проверяет демозапуск и перезапуск на `amd64`, затем публикует
 единый образ для `linux/amd64` и `linux/arm64`. Реальный MAX при этом не проверяется.
-Push в `main` публикует `latest` и `sha-<полный-SHA>`; тег `v1.0.0` публикует `1.0.0`:
+Push в `main`, push тега `v*` и ручной запуск workflow публикуют
+`ulitkad/info-arena:latest`. Логин и тег зафиксированы в workflow и Compose;
+дополнительные GitHub Variables и переменные образа в `.env` не нужны.
 
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-Передайте проверяющим адрес образа с фиксированной версией, `compose.yml`,
+Передайте проверяющим адрес образа `ulitkad/info-arena:latest`, `compose.yml`,
 безопасный `.env.example` и инструкцию демозапуска. Рабочий `.env`, токены и базы
 передавать не нужно. Логин в адресе образа публичный и не является секретом.
 
@@ -229,8 +226,6 @@ Compose предпочитает его файлу `compose.yml`.
 
 | Переменная | Назначение |
 | --- | --- |
-| `DOCKERHUB_USERNAME` | Владелец опубликованного образа `info-arena`. Публичное значение, не токен. |
-| `IMAGE_TAG` | Тег образа; по умолчанию `latest`. Для сдачи используйте версию или SHA. |
 | `WEB_PORT` | HTTP-порт хоста; по умолчанию `8080`. |
 | `WEB_BIND_ADDRESS` | По умолчанию `127.0.0.1`; `0.0.0.0` открывает порт на всех IPv4-интерфейсах. |
 | `SECRET_KEY` | Обязательный случайный секрет JWT длиной не менее 32 символов. Все экземпляры API должны использовать одно значение. После смены старые токены недействительны. |

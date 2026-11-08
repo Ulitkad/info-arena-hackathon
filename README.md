@@ -92,7 +92,7 @@ Demo authentication is enabled only when both `DEV_AUTH=true` and `SEED_DEMO=tru
 
 ## Docker Compose deployment
 
-The application ships as **one image**, `<dockerhub-username>/info-arena:<tag>`.
+The application ships as **one image**, `ulitkad/info-arena:latest`.
 It contains the built frontend, Nginx, FastAPI, the scheduler and the MAX bot.
 Supervisor manages the processes as the unprivileged user UID 10001. The
 container listens on HTTP port `8080`; the API health endpoint is `/api/health`.
@@ -112,8 +112,9 @@ copy the provided environment template:
 cp .env.example .env
 ```
 
-Set `DOCKERHUB_USERNAME`, `IMAGE_TAG` (e.g. `1.0.0` or `latest`) and a persistent
-random `SECRET_KEY` of at least 32 characters in `.env`. Generate a key with:
+The image address `ulitkad/info-arena:latest` is fixed in `compose.yml`.
+Set a persistent random `SECRET_KEY` of at least 32 characters in `.env`.
+Generate a key with:
 
 ```bash
 openssl rand -hex 32
@@ -153,16 +154,16 @@ Keep the deployment directory/Compose project name unchanged to reuse the same
 volumes. Before upgrades, back up SQLite consistently with the application
 stopped or via the SQLite backup API, and back up uploads.
 
-To update, wait for a successful image publication, change `IMAGE_TAG` and run:
+To update, wait for successful publication of the new `latest` image and run:
 
 ```bash
 docker compose pull
 docker compose up -d --wait
 ```
 
-Keep `SECRET_KEY` unchanged. Pin a version or SHA tag for review rather than
-`latest`. Image rollback does not roll back database migrations. Updates can
-cause brief downtime.
+Keep `SECRET_KEY` unchanged. Each publication overwrites `latest`; record the
+image digest to identify the submitted build. Image rollback does not roll back
+database migrations. Updates can cause brief downtime.
 
 The image serves HTTP only. A production Mini App needs an external HTTPS
 reverse proxy with a valid certificate chain, WebSocket support for `/ws`, and
@@ -186,31 +187,27 @@ blocking and a restart with persisted data, then removes the test volumes.
 To use the local image with the deployment Compose file:
 
 ```bash
-docker tag info-arena:local your-dockerhub-username/info-arena:local
+docker tag info-arena:local ulitkad/info-arena:latest
 ```
 
-Set the matching `DOCKERHUB_USERNAME` and `IMAGE_TAG=local` in `.env`, then run
-`docker compose up -d --wait --pull never`, without running `docker compose pull`.
+Run `docker compose up -d --wait --pull never`, without running
+`docker compose pull`. This uses the local image instead of downloading `latest`.
 
 ### Publish using GitHub Actions
 
-Create the public Docker Hub repository `your-dockerhub-username/info-arena`.
+Create the public Docker Hub repository `ulitkad/info-arena`.
 In GitHub → Settings → Secrets and variables → Actions, add:
 
-- Repository variable `DOCKERHUB_USERNAME`: your Docker Hub username;
-- Repository secret `DOCKERHUB_TOKEN`: a Docker Hub PAT with Read & Write permissions.
+- Repository secret `DOCKERHUB_TOKEN`: a Docker Hub PAT for `ulitkad` with Read & Write permissions.
 
 On push to `main`, `.github/workflows/docker-publish.yml` runs the application
 tests, builds the image, smoke-tests demo startup/restart on `amd64`, then
 publishes one image for `linux/amd64` and `linux/arm64`. It does not test real MAX
-connectivity. Main publishes `latest` and `sha-<full-SHA>`; a `v1.0.0` tag publishes `1.0.0`:
+connectivity. Pushes to `main`, `v*` tags and manual workflow runs publish
+`ulitkad/info-arena:latest`. The username and tag are fixed in the workflow and
+Compose; no additional GitHub Variables or image variables in `.env` are needed.
 
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-Submit the pinned image address, `compose.yml`, a safe `.env.example` and demo
+Submit `ulitkad/info-arena:latest`, `compose.yml`, a safe `.env.example` and demo
 instructions. Do not share your working `.env`, tokens or databases. The Docker
 Hub username in the image address is public, not a secret.
 
@@ -228,8 +225,6 @@ The configuration file is resolved relative to the current working directory. Lo
 
 | Variable | Description |
 | --- | --- |
-| `DOCKERHUB_USERNAME` | Owner of the published `info-arena` image. Public value, not a token. |
-| `IMAGE_TAG` | Image tag, default `latest`. Pin a version or SHA for review. |
 | `WEB_PORT` | Host HTTP port, default `8080`. |
 | `WEB_BIND_ADDRESS` | Default `127.0.0.1`; `0.0.0.0` exposes the port on all IPv4 interfaces. |
 | `SECRET_KEY` | Required random JWT secret, at least 32 characters. Use the same value for all API instances. Changing it invalidates existing tokens. |

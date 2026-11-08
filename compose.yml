@@ -1,6 +1,6 @@
 services:
   app:
-    image: "${DOCKERHUB_USERNAME:?Set DOCKERHUB_USERNAME in .env}/info-arena:${IMAGE_TAG:-latest}"
+    image: ulitkad/info-arena:latest
     env_file: .env
     environment:
       DATABASE_URL: sqlite+aiosqlite:////data/arena.db
