@@ -1,4 +1,5 @@
 import json
+import ssl
 
 import httpx
 import pytest
@@ -150,3 +151,84 @@ async def test_unhandled_updates_are_ignored(bot_settings, update):
 def test_error_summary_handles_non_json():
     assert bot.api_error(httpx.Response(502, text="<html>Bad gateway</html>")) == "non-JSON error response"
     assert bot.api_error(httpx.Response(502, json=[])) == "unexpected error response"
+
+
+async def test_polling_preflight_checks_identity_and_subscriptions():
+    paths = []
+
+    def handler(request):
+        paths.append(request.url.path)
+        if request.url.path == "/me":
+            return httpx.Response(200, json={"user_id": 99, "username": "arena_test_bot"})
+        return httpx.Response(200, json={"subscriptions": []})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://max.test") as client:
+        identity = await bot.check_polling(client)
+    assert identity["user_id"] == 99
+    assert paths == ["/me", "/subscriptions"]
+
+
+async def test_polling_preflight_detects_webhook_without_deleting_it():
+    def handler(request):
+        assert request.method == "GET"
+        if request.url.path == "/me":
+            return httpx.Response(200, json={"user_id": 99})
+        assert request.url.path == "/subscriptions"
+        return httpx.Response(200, json={"subscriptions": [{"url": "https://private.example/webhook"}]})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://max.test") as client:
+        with pytest.raises(bot.PollingConflictError, match="webhook subscription is active") as exc:
+            await bot.check_polling(client)
+    assert "private.example" not in str(exc.value)
+
+
+async def test_polling_preflight_stops_on_invalid_token():
+    def handler(request):
+        assert request.url.path == "/me"
+        return httpx.Response(401, json={"code": "unauthorized"})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://max.test") as client:
+        with pytest.raises(httpx.HTTPStatusError):
+            await bot.check_polling(client)
+
+
+@pytest.mark.parametrize(("error", "summary"), [
+    (httpx.ConnectTimeout("private proxy details"), "connection/TLS handshake timed out"),
+    (httpx.ReadTimeout("private proxy details"), "response timed out after connecting"),
+    (httpx.ConnectError("private proxy details"), "ConnectError"),
+])
+def test_network_failure_summary_does_not_expose_exception_details(error, summary):
+    assert summary in bot.request_failure(error)
+    assert "private proxy details" not in bot.request_failure(error)
+
+
+def test_certificate_failure_is_not_reported_as_network_timeout():
+    error = httpx.ConnectError("private proxy details")
+    error.__cause__ = ssl.SSLCertVerificationError(1, "certificate verify failed")
+    assert "TLS certificate verification failed" in bot.request_failure(error)
+
+
+def test_api_client_keeps_tls_verification_and_separate_connect_timeout(bot_settings):
+    client = bot.api_client(bot_settings)
+    assert client.timeout.connect == 10
+    assert client.timeout.read == 45
+    context = bot.tls_context(bot_settings)
+    assert context.verify_mode == ssl.CERT_REQUIRED
+    assert context.check_hostname
+
+
+async def test_start_command_gets_greeting(bot_settings, caplog):
+    def handler(request):
+        assert request.url.path == "/messages"
+        assert request.url.params["user_id"] == "42"
+        return httpx.Response(200, json={})
+
+    with caplog.at_level("INFO", logger="arena.bot"):
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://max.test") as client:
+            await bot.handle_update(client, bot_settings, {
+                "update_type": "message_created", "message": {
+                    "sender": {"user_id": 42}, "recipient": {"chat_type": "dialog"},
+                    "body": {"text": "/start"},
+                },
+            })
+    assert "MAX greeting sent successfully for message_created" in caplog.text

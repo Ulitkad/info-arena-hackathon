@@ -287,6 +287,37 @@ docker compose up -d --force-recreate app
 
 ### Bot diagnostics
 
+In the deployed container, run:
+
+```bash
+docker compose exec app python -m app.bot_check
+docker compose logs --since=10m app
+```
+
+The command checks token/CA configuration, DNS, direct TCP/TLS connectivity,
+`GET /me` and `GET /subscriptions` using the bot's HTTP client. It **never calls
+`/updates`**, consumes events, sends messages or deletes subscriptions. It does
+not print the token or proxy environment values. Direct probes may fail on
+proxy-only networks; the HTTP checks determine whether the bot can connect.
+
+- A connection/TLS handshake timeout means connection setup did not finish.
+  Check outbound TCP/443, routing, DNS and provider connectivity. Changing Caddy
+  or opening application ingress ports will not fix this.
+- Certificate verification failure means the trusted root CA or `MAX_CA_BUNDLE`
+  mount needs fixing. Do not disable TLS verification.
+- HTTP `401`: replace the invalid/revoked token and run
+  `docker compose up -d --force-recreate --wait`; `restart` does not reload `.env`.
+- Active webhooks conflict with polling. Remove subscriptions separately only
+  when deliberately switching to polling; the bot never deletes them automatically.
+- If checks pass but replies are missing, stop other polling instances with the
+  same token (old Compose stacks/local processes) and send `/start` again.
+
+Startup checks validate the token and subscriptions. Logs distinguish successful
+polling (`MAX long polling connected successfully`), received events
+(`MAX received ... updates`) and sent greetings (`MAX greeting sent successfully`).
+Supervisor's `bot entered RUNNING` only means the process is alive, not that MAX
+is reachable. The Mini App healthcheck does not test bot connectivity either.
+
 - `GET /updates -> 200` confirms a successful HTTPS request and access to updates. A later `POST /messages -> 404` is a separate send error. The bot logs the MAX HTTP status, `code`, and `message` without logging the token or update contents.
 - Direct replies (`bot_started` and messages with `chat_type=dialog`) use the user ID. Group replies use the chat ID. Do not put a user ID in `chat_id` for a group message.
 - Permanent `4xx` send errors are skipped so one event cannot block the queue. For `401`, `408`, `429`, network errors, and `5xx`, the marker is not advanced and the request is retried. A retried batch can duplicate greetings that were already sent.

@@ -11,6 +11,55 @@ from .config import Settings, get_settings
 log = logging.getLogger("arena.bot")
 
 
+class PollingConflictError(RuntimeError):
+    """A webhook is configured; never silently remove someone else's subscription."""
+
+
+def tls_context(settings: Settings) -> ssl.SSLContext:
+    context = ssl.create_default_context()
+    if settings.max_ca_bundle:
+        context.load_verify_locations(settings.max_ca_bundle)
+    return context
+
+
+def api_client(settings: Settings) -> httpx.AsyncClient:
+    return httpx.AsyncClient(
+        base_url=settings.bot_api_url,
+        headers={"Authorization": settings.bot_token},
+        verify=tls_context(settings),
+        # A long poll can wait 30 seconds, but connection setup should fail faster.
+        timeout=httpx.Timeout(45, connect=10),
+    )
+
+
+async def check_polling(client: httpx.AsyncClient) -> dict:
+    response = await client.get("/me")
+    response.raise_for_status()
+    identity = response.json()
+    response = await client.get("/subscriptions")
+    response.raise_for_status()
+    if response.json().get("subscriptions"):
+        raise PollingConflictError(
+            "MAX webhook subscription is active: long polling cannot receive updates. "
+            "Remove the subscription only if this bot should use polling; nothing was changed automatically."
+        )
+    return identity
+
+
+def request_failure(exc: httpx.RequestError) -> str:
+    """Explain errors without printing headers, proxy credentials or event payloads."""
+    cause = exc
+    while cause is not None:
+        if isinstance(cause, ssl.SSLCertVerificationError) or "CERTIFICATE_VERIFY_FAILED" in str(cause):
+            return "TLS certificate verification failed; check MAX_CA_BUNDLE and the trusted root CA"
+        cause = cause.__cause__
+    if isinstance(exc, httpx.ConnectTimeout):
+        return "connection/TLS handshake timed out; check outbound TCP/443, routing, DNS and proxy settings"
+    if isinstance(exc, httpx.ReadTimeout):
+        return "response timed out after connecting; check MAX availability and network/proxy timeouts"
+    return f"{type(exc).__name__}; check DNS, outbound connectivity and proxy settings"
+
+
 def reply_target(update: dict) -> dict:
     message = update.get("message") or {}
     recipient = message.get("recipient") or {}
@@ -54,6 +103,7 @@ async def handle_update(client: httpx.AsyncClient, settings: Settings, update: d
         "attachments": [{"type": "inline_keyboard", "payload": {"buttons": [[button]]}}],
     })
     reply.raise_for_status()
+    log.info("MAX greeting sent successfully for %s", kind)
     await asyncio.sleep(0.5)
 
 
@@ -64,6 +114,8 @@ async def poll_once(client: httpx.AsyncClient, settings: Settings, marker: int |
     response = await client.get("/updates", params=params)
     response.raise_for_status()
     data = response.json()
+    if data.get("updates"):
+        log.info("MAX received %d updates", len(data["updates"]))
     for update in data.get("updates", []):
         try:
             await handle_update(client, settings, update)
@@ -89,26 +141,39 @@ async def run():
         log.warning("BOT_TOKEN is empty; bot is disabled")
         await asyncio.Event().wait()
         return
-    tls = ssl.create_default_context()
-    if settings.max_ca_bundle:
-        tls.load_verify_locations(settings.max_ca_bundle)
     marker_file = Path("/data/bot-marker") if Path("/data").exists() else Path("data/bot-marker")
     marker_file.parent.mkdir(parents=True, exist_ok=True)
     marker = int(marker_file.read_text()) if marker_file.exists() else None
-    async with httpx.AsyncClient(base_url=settings.bot_api_url, headers={"Authorization": settings.bot_token},
-                                  verify=tls, timeout=45) as client:
+    log.info("MAX bot starting; custom_ca=%s; checking token and webhook subscriptions", bool(settings.max_ca_bundle))
+    async with api_client(settings) as client:
+        checked = False
+        connected = False
         while True:
             try:
+                if not checked:
+                    identity = await check_polling(client)
+                    log.info("MAX token accepted for bot_id=%s; no webhooks; starting long polling", identity.get("user_id"))
+                    checked = True
                 marker = await poll_once(client, settings, marker, marker_file)
+                if not connected:
+                    log.info("MAX long polling connected successfully; waiting for Start or /start")
+                    connected = True
                 await asyncio.sleep(0.3)
+            except PollingConflictError as exc:
+                log.error("%s Retrying checks in 60 seconds.", exc)
+                await asyncio.sleep(60)
             except httpx.HTTPStatusError as exc:
+                connected = False
+                checked = False
                 log.error("MAX %s %s failed: HTTP %s %s; retry in 5 seconds",
                           exc.request.method, exc.request.url.path, exc.response.status_code, api_error(exc.response))
                 await asyncio.sleep(5)
-            except httpx.ConnectTimeout:
-                log.warning("MAX connection/TLS handshake timed out; check server egress/proxy/network; retry in 5 seconds")
+            except httpx.RequestError as exc:
+                connected = False
+                log.warning("MAX %s %s: %s; retry in 5 seconds",
+                            exc.request.method, exc.request.url.path, request_failure(exc))
                 await asyncio.sleep(5)
-            except (httpx.RequestError, ValueError, OSError):
+            except (ValueError, OSError):
                 log.exception("MAX update cycle failed; retry in 5 seconds")
                 await asyncio.sleep(5)
 
